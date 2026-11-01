@@ -7,7 +7,7 @@
 *{box-sizing:border-box}
 body{margin:0;background:var(--felt);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
 h1,h2{font-family:Palatino,"Palatino Linotype",Georgia,serif;margin:.2em 0}
-h1{font-size:2.6rem;letter-spacing:.02em}
+h1{font-size:2.6rem}
 #app{max-width:640px;margin:0 auto;padding:14px}
 button,input{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px 14px;color:var(--ink)}
 button{cursor:pointer;background:var(--brass);color:#2a1d00;font-weight:600;margin:3px}
@@ -15,98 +15,140 @@ button.alt{background:transparent;color:var(--ink)}
 button:disabled{opacity:.35;cursor:default}
 button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
 input{background:#0d2623;width:100%;margin:4px 0}
-.row{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.top{justify-content:space-between;background:var(--panel);border-radius:10px;padding:8px 12px}
 .pl{background:var(--panel);border-radius:10px;padding:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;border-left:5px solid transparent}
 .pl.turn{border-color:var(--brass)}.pl.out{opacity:.45}
 .card{display:inline-block;min-width:70px;padding:8px 6px;margin:2px;border-radius:6px;text-align:center;font-size:13px;font-weight:600;border:2px solid #0004;color:#fff}
 .card.back{background:repeating-linear-gradient(45deg,#2b5f56,#2b5f56 6px,#244f48 6px,#244f48 12px);color:transparent}
-.card.dead{opacity:.45;text-decoration:line-through}
-.card.sel{outline:3px solid var(--brass)}
-.me .card{min-width:96px;padding:16px 8px;font-size:15px}
+.card.dead{opacity:.45;text-decoration:line-through}.card.sel{outline:3px solid var(--brass)}
+.me .card{min-width:90px;padding:16px 8px;font-size:15px}
 .pick{cursor:pointer}
 .box{background:#0d2623;border-radius:10px;padding:12px;margin:8px 0}
-#log{max-height:150px;overflow:auto;font-size:14px;color:var(--dim)}
-.err{color:#ff9d8f}
+#log{max-height:140px;overflow:auto;font-size:14px;color:var(--dim)}
+#cap{background:var(--brass);color:#2a1d00;border-radius:10px;padding:12px;margin:8px 0;font:700 1.15rem Palatino,Georgia,serif;text-align:center}
+.tabs{margin:8px 0}.code{font:700 2rem Palatino,Georgia,serif;letter-spacing:.2em;color:var(--brass)}
+.sw{width:34px;height:34px;padding:0;border-radius:50%;border:3px solid transparent}.sw.on{border-color:#fff}
+.bar{height:8px;background:#0006;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--brass)}
+.err{color:#ff9d8f}.ok{color:#9fe3b0}
 </style></head>
 <body><div id="app"></div>
 <script src="/socket.io/socket.io.js"></script>
+<script src="/shared.js"></script>
 <script>
 const s=io(),$=document.getElementById('app');
-const pid=localStorage.pid||(localStorage.pid=Math.random().toString(36).slice(2)+Date.now());
 const N={duke:'Duque',assassin:'Assassino',captain:'Capitão',ambassador:'Embaixador',contessa:'Condessa'};
 const COL={duke:'#7b3fa0',assassin:'#34404c',captain:'#2574a9',ambassador:'#2a8a4f',contessa:'#a8392b'};
-const A={income:'Renda (+1)',aid:'Ajuda externa (+2)',coup:'Golpe (paga 7)',tax:'Duque: Taxar (+3)',assassinate:'Assassino: Assassinar (paga 3)',steal:'Capitão: Roubar (+2)',exchange:'Embaixador: Trocar cartas'};
+const A={income:'Renda (+1)',aid:'Ajuda externa (+2)',coup:'Golpe (paga 7)',tax:'Duque: Taxar (+3)',assassinate:'Assassino: Assassinar (paga 3)',steal:'Capitão: Extorquir (+2)',exchange:'Embaixador: Trocar cartas'};
+const HC=['#1b1b1b','#3b2a1a','#8b5a2b','#d9b44a','#c0392b','#d9d9d9'],SKN=['#ffdbac','#f1c27d','#e0ac69','#c68642','#8d5524'],OC=['#2574a9','#2a8a4f','#a8392b','#7b3fa0','#34404c','#d4a94f'];
 const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
-let st=null,err='',tgt=null,sel=[];
+let me=null,st=null,err='',msg=location.search.includes('ok=1')?'E-mail confirmado! Entre com seu e-mail e senha.':'',tab='play',mode='in',tgt=null,sel=[],inv=null;
+const api=m=>new Promise(r=>s.emit('api',m,r));
+const eff=u=>{const k=u.skin&&SK.find(x=>x.id===u.skin);return k?k.a:u.avatar};
+const refresh=async()=>{const r=await api({t:'me'});if(r.me)me=r.me};
 
-s.on('connect',()=>{if(localStorage.code)s.emit('join',{code:localStorage.code,name:localStorage.name,pid})});
-s.on('state',x=>{st=x;err='';localStorage.code=x.code;if(!x.xchg)sel=[];if(x.phase!=='action')tgt=null;draw()});
-s.on('err',m=>{err=m;if(!st)localStorage.removeItem('code');draw()});
-const mv=m=>{tgt=null;s.emit('move',m)};
-function go(create){
-  const n=document.getElementById('n').value.trim();
-  if(!n){err='Digite seu nome.';return draw()}
-  localStorage.name=n;
-  s.emit('join',{create,code:create?'':document.getElementById('c').value,name:n,pid});
-}
-function tog(i){const k=st.xchg.keep;if(sel.includes(i))sel=sel.filter(x=>x!==i);else if(sel.length<k)sel.push(i);draw()}
+function av(a,z=48){a=a||{};const sk=a.skin||'#f1c27d',hc=a.hc||'#222',oc=a.oc||'#2574a9',h=a.h||0;
+ const cap=`<path d="M17 28c0-12 6-16 15-16s15 4 15 16c-3-5-8-7-15-7s-12 2-15 7z" fill="${hc}"/>`;
+ const back=h===2?`<path d="M15 46V28c0-12 7-18 17-18s17 6 17 18v18z" fill="${hc}"/>`:'';
+ const front=h===1||h===2?cap:h===3?cap+`<circle cx="32" cy="9" r="6" fill="${hc}"/>`:'';
+ const x={crown:'<path d="M20 17l3-10 5 5 4-8 4 8 5-5 3 10z" fill="#f1c40f"/>',patch:'<circle cx="38" cy="30" r="4" fill="#111"/><path d="M17 22l30 12" stroke="#111" stroke-width="1.5"/>',hat:'<path d="M16 20h32l-5-12H21z" fill="#6b3f1d"/><rect x="14" y="19" width="36" height="3" fill="#4a2a10"/>',mask:'<rect x="18" y="26" width="28" height="7" rx="3" fill="#111"/>'}[a.x]||'';
+ return `<svg width="${z}" height="${z}" viewBox="0 0 64 64">${back}<path d="M10 64c0-14 10-18 22-18s22 4 22 18z" fill="${oc}"/><circle cx="32" cy="30" r="14" fill="${sk}"/>${front}<circle cx="27" cy="31" r="1.8" fill="#222"/><circle cx="37" cy="31" r="1.8" fill="#222"/><path d="M27 38q5 4 10 0" stroke="#222" fill="none" stroke-width="1.5"/>${x}</svg>`}
 const card=(c,x='')=>c?`<span class="card ${x}" style="background:${COL[c]}">${N[c]}</span>`:`<span class="card back ${x}">?</span>`;
 
-function draw(){
-  if(!st)return $.innerHTML=`<h1>Coup</h1><p>Blefe, desafie e seja o último com influência.</p>
-    <input id="n" placeholder="Seu nome" maxlength="14" value="${esc(localStorage.name||'')}">
-    <button onclick="go(true)">Criar sala</button><hr>
-    <input id="c" placeholder="Código da sala" maxlength="4" style="text-transform:uppercase">
-    <button class="alt" onclick="go(false)">Entrar na sala</button><p class="err">${esc(err)}</p>`;
-  const me=st.players.find(p=>p.pid===st.me),nm=id=>esc((st.players.find(p=>p.pid===id)||{}).name||'');
-  if(st.phase==='lobby'){
-    const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5));
-    return $.innerHTML=`<h1>Sala ${st.code}</h1><p>Passe esse código para os amigos entrarem.</p>
-      ${st.players.map(p=>`<div class="pl">${esc(p.name)}</div>`).join('')}
-      <p>${n} jogador(es). Com esse grupo o baralho terá ${cp*5} cartas (${cp} de cada personagem).</p>
-      ${st.host===st.me?`<button ${n<2?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar o jogo.</p>'}
-      <p class="err">${esc(err)}</p>`;
-  }
-  const pd=st.pd,my=st.turn===st.me;
-  let status='',ctl='';
-  if(st.phase==='action'){
-    status=my?'Sua vez. Escolha uma ação.':`Vez de ${nm(st.turn)}`;
-    if(my&&me.alive){
-      if(tgt)ctl=`Alvo de ${A[tgt]}:<br>`+st.players.filter(p=>p.alive&&p.pid!==st.me).map(p=>`<button onclick="mv({t:'act',a:'${tgt}',target:'${p.pid}'})">${esc(p.name)}</button>`).join('')+`<button class="alt" onclick="tgt=null;draw()">Voltar</button>`;
-      else ctl=Object.keys(A).map(a=>{
-        const need=a==='coup'?7:a==='assassinate'?3:0,dis=me.coins<need||(me.coins>=10&&a!=='coup'),tg=a==='coup'||a==='assassinate'||a==='steal';
-        return `<button ${dis?'disabled':''} onclick="${tg?`tgt='${a}';draw()`:`mv({t:'act',a:'${a}'})`}">${A[a]}</button>`}).join('')
-        +(me.coins>=10?'<p>Com 10 ou mais moedas, o Golpe é obrigatório.</p>':'');
-    }
-  }else if(st.phase==='react'){
-    const b=pd.block;
-    status=(b?`${nm(b.by)} bloqueia com ${N[b.char]}`:`${nm(pd.actor)} usou ${A[pd.a]}${pd.t?' em '+nm(pd.t):''}`)
-      +`<br><small>Aguardando: ${pd.wait.map(nm).join(', ')||'ninguém'}</small>`;
-    if(st.can)ctl=(st.can.chal?`<button onclick="mv({t:'chal'})">Desafiar</button>`:'')
-      +st.can.block.map(h=>`<button onclick="mv({t:'block',ch:'${h}'})">Bloquear com ${N[h]}</button>`).join('')
-      +`<button class="alt" onclick="mv({t:'pass'})">Deixar passar</button>`;
-  }else if(st.phase==='lose'){
-    status=st.lose===st.me?'Toque em uma das suas cartas para perdê-la.':`${nm(st.lose)} está escolhendo uma carta para perder.`;
-  }else if(st.phase==='exchange'){
-    if(st.xchg){
-      status=`Escolha ${st.xchg.keep} carta(s) para manter.`;
-      ctl=st.xchg.pool.map((c,i)=>`<span class="pick" onclick="tog(${i})">${card(c,sel.includes(i)?'sel':'')}</span>`).join('')
-        +`<br><button ${sel.length!==st.xchg.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`;
-    }else status=`${nm(st.turn)} está trocando cartas.`;
-  }else if(st.phase==='over'){
-    status=`<b>${nm(st.winner)} venceu!</b>`;
-    if(st.host===st.me)ctl=`<button onclick="s.emit('again')">Jogar de novo</button>`;
-  }
-  const myCards=me.cards.map((c,i)=>{
-    const pick=st.phase==='lose'&&st.lose===st.me&&!c.dead;
-    return pick?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${card(c.c,'sel')}</span>`:card(c.c,c.dead?'dead':'');
-  }).join('');
-  $.innerHTML=`<div class="row"><h2>Sala ${st.code}</h2><small>Cartas no monte: ${st.deck} (${st.copies} de cada)</small></div>
-    ${st.players.filter(p=>p.pid!==st.me).map(p=>`<div class="pl ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}"><div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div><div>${p.cards.map(c=>card(c.c,c.dead?'dead':'')).join('')}</div></div>`).join('')}
-    <div class="box">${status}<div>${ctl}</div></div>
-    <div class="pl me ${my?'turn':''} ${me.alive?'':'out'}"><div><b>Você</b><br><small>${me.coins} moedas</small></div><div>${myCards}</div></div>
-    ${me.alive?'':'<p>Você foi eliminado. Continue acompanhando a partida.</p>'}
-    <div class="box" id="log">${st.log.slice().reverse().map(esc).join('<br>')}</div>`;
+s.on('connect',async()=>{const tk=localStorage.tk;if(tk){const r=await api({t:'tok',tk});if(r.me){me=r.me;if(localStorage.code)s.emit('join',{code:localStorage.code})}else localStorage.removeItem('tk')}draw()});
+s.on('state',async x=>{if(!st)await refresh();st=x;err='';localStorage.code=x.code;if(!x.xchg)sel=[];if(x.phase!=='action')tgt=null;draw()});
+s.on('err',m=>{err=m;if(!st)localStorage.removeItem('code');draw()});
+s.on('invite',i=>{inv=i;draw()});
+const mv=m=>{tgt=null;s.emit('move',m)};
+const enter=c=>{inv=null;s.emit('join',{code:c})};
+const leave=async()=>{st=null;localStorage.removeItem('code');await refresh();draw()};
+const tog=i=>{const k=st.xchg.keep;if(sel.includes(i))sel=sel.filter(x=>x!==i);else if(sel.length<k)sel.push(i);draw()};
+const g=i=>document.getElementById(i).value.trim();
+async function auth(){
+  const m=mode==='up'?{t:'reg',email:g('e'),name:g('n'),pass:document.getElementById('p').value}:{t:'login',email:g('e'),pass:document.getElementById('p').value};
+  const r=await api(m);err='';msg='';
+  if(r.err)err=r.err;else if(r.verify){msg='Enviamos um e-mail para '+m.email+'. Abra a mensagem e toque em Confirmar conta. Depois é só entrar aqui.';mode='in'}
+  else{localStorage.tk=r.token;me=r.me;if(location.search)history.replaceState(0,'','/')}
+  draw();
 }
+async function call(m){const r=await api(m);if(r.err)err=r.err;else{err='';if(r.me)me=r.me}draw()}
+const setAv=(k,v)=>{const a={...me.avatar,[k]:v};me.avatar=a;me.skin=null;call({t:'avatar',a})};
+
+function authView(){return `<h1>Coup</h1><p>Blefe, desafie e seja o último com influência.</p>
+ <div class="box"><h2>${mode==='up'?'Criar conta':'Entrar'}</h2>
+ <input id="e" type="email" placeholder="E-mail" autocomplete="email">
+ ${mode==='up'?'<input id="n" placeholder="Seu nome no jogo" maxlength="14">':''}
+ <input id="p" type="password" placeholder="Senha (mínimo 6 caracteres)" autocomplete="${mode==='up'?'new-password':'current-password'}">
+ <button onclick="auth()">${mode==='up'?'Criar conta':'Entrar'}</button>
+ <button class="alt" onclick="mode='${mode==='up'?'in':'up'}';err='';msg='';draw()">${mode==='up'?'Já tenho conta':'Criar uma conta'}</button>
+ <p class="err">${esc(err)}</p><p class="ok">${esc(msg)}</p></div>`}
+
+function homeView(){
+ const T={play:'Jogar',friends:'Amigos',avatar:'Personagem',miss:'Missões',cfg:'Ajustes'};
+ let h=`<div class="row top"><div class="row">${av(eff(me),44)}<b>${esc(me.name)}</b></div><b>${me.pts} pontos</b></div>
+ <div class="tabs">${Object.keys(T).map(k=>`<button class="${tab===k?'':'alt'}" onclick="tab='${k}';err='';draw()">${T[k]}</button>`).join('')}</div>`;
+ if(inv)h+=`<div class="box">${esc(inv.from)} convidou você para a sala ${esc(inv.room)}. <button onclick="enter('${esc(inv.room)}')">Entrar</button></div>`;
+ if(tab==='play')h+=`<div class="box"><h2>Jogar</h2><button onclick="s.emit('join',{create:true})">Criar sala online</button><button onclick="s.emit('join',{create:true,bots:3})">Jogar com bots</button><hr><input id="c" placeholder="Código da sala" maxlength="4" style="text-transform:uppercase"><button class="alt" onclick="enter(g('c'))">Entrar na sala</button></div>`;
+ if(tab==='friends')h+=`<div class="box"><h2>Seu código de jogador</h2><div class="code">${me.code}</div><small>Passe esse código para seus amigos adicionarem você.</small></div>
+  <div class="box"><input id="fc" placeholder="Código de um amigo" maxlength="6" style="text-transform:uppercase"><button onclick="call({t:'friend',code:g('fc')})">Adicionar amigo</button></div>
+  ${me.friends.map(f=>`<div class="pl"><div class="row">${av(f.av,40)}<b>${esc(f.name)}</b></div><small>${f.on?'online':'offline'}</small></div>`).join('')||'<p>Você ainda não tem amigos. Troque códigos para começar.</p>'}
+  <p><small>Para jogar juntos: crie uma sala e convide seus amigos online pelo lobby.</small></p>`;
+ if(tab==='avatar'){
+  const sw=(k,L,cur)=>L.map(c=>`<button class="sw ${cur===c?'on':''}" style="background:${c}" aria-label="${c}" onclick="setAv('${k}','${c}')"></button>`).join('');
+  h+=`<div class="box row"><div>${av(eff(me),110)}</div><div style="flex:1;min-width:220px"><b>Cabelo</b><br>${['Careca','Curto','Longo','Coque'].map((n,i)=>`<button class="${me.avatar.h===i?'':'alt'}" onclick="setAv('h',${i})">${n}</button>`).join('')}<br><b>Cor do cabelo</b><br>${sw('hc',HC,me.avatar.hc)}<br><b>Pele</b><br>${sw('skin',SKN,me.avatar.skin)}<br><b>Roupa</b><br>${sw('oc',OC,me.avatar.oc)}</div></div>
+  <h2>Skins</h2>${SK.map(k=>{const own=!k.c||me.skins.includes(k.id);return `<div class="pl"><div class="row">${av(k.a,52)}<div><b>${k.n}</b><br><small>${k.r}</small></div></div>${own?(me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`):`<button ${me.pts<k.c?'disabled':''} onclick="call({t:'buy',id:'${k.id}'})">${k.c} pts</button>`}</div>`}).join('')}
+  ${me.skin?`<button class="alt" onclick="call({t:'skin',id:null})">Usar meu personagem</button>`:''}`;
+ }
+ if(tab==='miss')h+=`<h2>Missões</h2><p>Cada partida dá 10 pontos, e vencer dá mais 30. Gaste na aba Personagem.</p>`+MS.map(k=>{const v=Math.min(me.stats[k.k],k.n),d=me.claimed.includes(k.id);return `<div class="pl"><div style="flex:1"><b>${k.t}</b> <small>(${v}/${k.n})</small><div class="bar"><i style="width:${v/k.n*100}%"></i></div></div>${d?'<small>Resgatada</small>':`<button ${v<k.n?'disabled':''} onclick="call({t:'claim',id:'${k.id}'})">+${k.p} pts</button>`}</div>`}).join('');
+ if(tab==='cfg')h+=`<div class="box"><h2>Conta</h2><p>${esc(me.email)}<br>Código de jogador: <b>${me.code}</b></p><input id="nm" value="${esc(me.name)}" maxlength="14"><button onclick="call({t:'name',name:g('nm')})">Salvar nome</button><button class="alt" onclick="localStorage.clear();location.href='/'">Sair da conta</button></div>
+  <div class="box"><h2>Regras</h2><p>Cada jogador começa com 2 moedas e 2 cartas. Na sua vez, faça uma ação. Ações de personagem podem ser blefe e qualquer um pode desafiar. Quem perde o desafio perde uma carta. Quem fica sem cartas está fora, e vence o último de pé.</p>
+  <p><b>Renda</b> +1. <b>Ajuda externa</b> +2 (Duque bloqueia). <b>Golpe</b> paga 7 e o alvo perde uma carta (obrigatório com 10 moedas). <b>Duque</b> taxa +3. <b>Assassino</b> paga 3 e mata uma carta (Condessa bloqueia). <b>Capitão</b> extorque 2 moedas (Capitão ou Embaixador bloqueiam). <b>Embaixador</b> troca cartas.</p>
+  <p>O baralho cresce com o número de jogadores: 4 jogadores usam 15 cartas (3 de cada).</p></div>`;
+ return h+`<p class="err">${esc(err)}</p>`}
+
+function lobbyView(){
+ const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5)),host=st.host===st.me,fr=me.friends.filter(f=>f.on);
+ return `<h1>Sala ${st.code}</h1><p>Passe o código para os amigos ou convide quem estiver online.</p>`
+ +st.players.map(p=>`<div class="pl"><div class="row">${av(p.av,40)}<b>${esc(p.name)}</b>${p.bot?'<small>bot</small>':''}</div></div>`).join('')
+ +`<p>${n} jogador(es): baralho de ${cp*5} cartas (${cp} de cada).</p>`
+ +(host?`<button class="alt" onclick="s.emit('bot',1)">Adicionar bot</button><button class="alt" onclick="s.emit('bot',-1)">Remover bot</button><button ${n<2?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar.</p>')
+ +(fr.length?`<div class="box">Convidar amigo online:<br>${fr.map(f=>`<button class="alt" onclick="api({t:'invite',code:'${f.code}',room:'${st.code}'})">${esc(f.name)}</button>`).join('')}</div>`:'')
+ +`<button class="alt" onclick="leave()">Sair da sala</button><p class="err">${esc(err)}</p>`}
+
+function gameView(){
+ const mp=st.players.find(p=>p.pid===st.me),nm=id=>esc((st.players.find(p=>p.pid===id)||{}).name||''),pd=st.pd,my=st.turn===st.me;
+ let status='',ctl='';
+ if(st.phase==='action'){
+  status=my?'Sua vez. Escolha uma ação.':`Vez de ${nm(st.turn)}`;
+  if(my&&mp.alive){
+   if(tgt)ctl=`Alvo de ${A[tgt]}:<br>`+st.players.filter(p=>p.alive&&p.pid!==st.me).map(p=>`<button onclick="mv({t:'act',a:'${tgt}',target:'${p.pid}'})">${esc(p.name)}</button>`).join('')+`<button class="alt" onclick="tgt=null;draw()">Voltar</button>`;
+   else ctl=Object.keys(A).map(a=>{const need=a==='coup'?7:a==='assassinate'?3:0,dis=mp.coins<need||(mp.coins>=10&&a!=='coup'),t=a==='coup'||a==='assassinate'||a==='steal';
+    return `<button ${dis?'disabled':''} onclick="${t?`tgt='${a}';draw()`:`mv({t:'act',a:'${a}'})`}">${A[a]}</button>`}).join('')+(mp.coins>=10?'<p>Com 10 ou mais moedas, o Golpe é obrigatório.</p>':'');
+  }
+ }else if(st.phase==='react'){
+  const b=pd.block;
+  status=(b?`${nm(b.by)} bloqueia com ${N[b.char]}`:`${nm(pd.actor)}: ${A[pd.a]}${pd.t?' em '+nm(pd.t):''}`)+`<br><small>Aguardando: ${pd.wait.map(nm).join(', ')||'ninguém'}</small>`;
+  if(st.can)ctl=(st.can.chal?`<button onclick="mv({t:'chal'})">Desafiar</button>`:'')+st.can.block.map(h=>`<button onclick="mv({t:'block',ch:'${h}'})">Bloquear com ${N[h]}</button>`).join('')+`<button class="alt" onclick="mv({t:'pass'})">Deixar passar</button>`;
+ }else if(st.phase==='lose'){
+  status=st.lose===st.me?'Toque em uma das suas cartas para perdê-la.':`${nm(st.lose)} está escolhendo uma carta para perder.`;
+ }else if(st.phase==='exchange'){
+  if(st.xchg){status=`Escolha ${st.xchg.keep} carta(s) para manter.`;
+   ctl=st.xchg.pool.map((c,i)=>`<span class="pick" onclick="tog(${i})">${card(c,sel.includes(i)?'sel':'')}</span>`).join('')+`<br><button ${sel.length!==st.xchg.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`;
+  }else status=`${nm(st.turn)} está trocando cartas.`;
+ }else if(st.phase==='over'){
+  status=`<b>${nm(st.winner)} venceu!</b>`;
+  ctl=(st.host===st.me?`<button onclick="s.emit('again')">Jogar de novo</button>`:'')+`<button class="alt" onclick="leave()">Voltar ao início</button>`;
+ }
+ const mine=mp.cards.map((c,i)=>st.phase==='lose'&&st.lose===st.me&&!c.dead?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${card(c.c,'sel')}</span>`:card(c.c,c.dead?'dead':'')).join('');
+ return `<div class="row"><h2>Sala ${st.code}</h2><small>Monte: ${st.deck} cartas (${st.copies} de cada)</small></div>
+ <div id="cap" aria-live="polite">${esc(st.log[st.log.length-1]||'')}</div>
+ ${st.players.filter(p=>p.pid!==st.me).map(p=>`<div class="pl ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}"><div class="row">${av(p.av,42)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div>${p.cards.map(c=>card(c.c,c.dead?'dead':'')).join('')}</div></div>`).join('')}
+ <div class="box">${status}<div>${ctl}</div></div>
+ <div class="pl me ${my?'turn':''} ${mp.alive?'':'out'}"><div class="row">${av(mp.av,52)}<div><b>${esc(mp.name)}</b><br><small>${mp.coins} moedas</small></div></div><div>${mine}</div></div>
+ ${mp.alive?'':'<p>Você foi eliminado. Continue acompanhando a partida.</p>'}
+ <div class="box" id="log">${st.log.slice().reverse().map(esc).join('<br>')}</div>
+ ${st.phase==='over'?'':'<button class="alt" onclick="leave()">Sair da sala</button>'}`}
+
+function draw(){$.innerHTML=!me?authView():!st?homeView():st.phase==='lobby'?lobbyView():gameView()}
 draw();
 </script></body></html>
