@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Coup Online</title>
+<style>
+:root{--felt:#12332f;--panel:#1c4a43;--ink:#f3ecd9;--brass:#d4a94f;--dim:#8fb0a8}
+*{box-sizing:border-box}
+body{margin:0;background:var(--felt);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
+h1,h2{font-family:Palatino,"Palatino Linotype",Georgia,serif;margin:.2em 0}
+h1{font-size:2.6rem;letter-spacing:.02em}
+#app{max-width:640px;margin:0 auto;padding:14px}
+button,input{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px 14px;color:var(--ink)}
+button{cursor:pointer;background:var(--brass);color:#2a1d00;font-weight:600;margin:3px}
+button.alt{background:transparent;color:var(--ink)}
+button:disabled{opacity:.35;cursor:default}
+button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2px}
+input{background:#0d2623;width:100%;margin:4px 0}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline}
+.pl{background:var(--panel);border-radius:10px;padding:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;border-left:5px solid transparent}
+.pl.turn{border-color:var(--brass)}.pl.out{opacity:.45}
+.card{display:inline-block;min-width:70px;padding:8px 6px;margin:2px;border-radius:6px;text-align:center;font-size:13px;font-weight:600;border:2px solid #0004;color:#fff}
+.card.back{background:repeating-linear-gradient(45deg,#2b5f56,#2b5f56 6px,#244f48 6px,#244f48 12px);color:transparent}
+.card.dead{opacity:.45;text-decoration:line-through}
+.card.sel{outline:3px solid var(--brass)}
+.me .card{min-width:96px;padding:16px 8px;font-size:15px}
+.pick{cursor:pointer}
+.box{background:#0d2623;border-radius:10px;padding:12px;margin:8px 0}
+#log{max-height:150px;overflow:auto;font-size:14px;color:var(--dim)}
+.err{color:#ff9d8f}
+</style></head>
+<body><div id="app"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const s=io(),$=document.getElementById('app');
+const pid=localStorage.pid||(localStorage.pid=Math.random().toString(36).slice(2)+Date.now());
+const N={duke:'Duque',assassin:'Assassino',captain:'Capitão',ambassador:'Embaixador',contessa:'Condessa'};
+const COL={duke:'#7b3fa0',assassin:'#34404c',captain:'#2574a9',ambassador:'#2a8a4f',contessa:'#a8392b'};
+const A={income:'Renda (+1)',aid:'Ajuda externa (+2)',coup:'Golpe (paga 7)',tax:'Duque: Taxar (+3)',assassinate:'Assassino: Assassinar (paga 3)',steal:'Capitão: Roubar (+2)',exchange:'Embaixador: Trocar cartas'};
+const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+let st=null,err='',tgt=null,sel=[];
+
+s.on('connect',()=>{if(localStorage.code)s.emit('join',{code:localStorage.code,name:localStorage.name,pid})});
+s.on('state',x=>{st=x;err='';localStorage.code=x.code;if(!x.xchg)sel=[];if(x.phase!=='action')tgt=null;draw()});
+s.on('err',m=>{err=m;if(!st)localStorage.removeItem('code');draw()});
+const mv=m=>{tgt=null;s.emit('move',m)};
+function go(create){
+  const n=document.getElementById('n').value.trim();
+  if(!n){err='Digite seu nome.';return draw()}
+  localStorage.name=n;
+  s.emit('join',{create,code:create?'':document.getElementById('c').value,name:n,pid});
+}
+function tog(i){const k=st.xchg.keep;if(sel.includes(i))sel=sel.filter(x=>x!==i);else if(sel.length<k)sel.push(i);draw()}
+const card=(c,x='')=>c?`<span class="card ${x}" style="background:${COL[c]}">${N[c]}</span>`:`<span class="card back ${x}">?</span>`;
+
+function draw(){
+  if(!st)return $.innerHTML=`<h1>Coup</h1><p>Blefe, desafie e seja o último com influência.</p>
+    <input id="n" placeholder="Seu nome" maxlength="14" value="${esc(localStorage.name||'')}">
+    <button onclick="go(true)">Criar sala</button><hr>
+    <input id="c" placeholder="Código da sala" maxlength="4" style="text-transform:uppercase">
+    <button class="alt" onclick="go(false)">Entrar na sala</button><p class="err">${esc(err)}</p>`;
+  const me=st.players.find(p=>p.pid===st.me),nm=id=>esc((st.players.find(p=>p.pid===id)||{}).name||'');
+  if(st.phase==='lobby'){
+    const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5));
+    return $.innerHTML=`<h1>Sala ${st.code}</h1><p>Passe esse código para os amigos entrarem.</p>
+      ${st.players.map(p=>`<div class="pl">${esc(p.name)}</div>`).join('')}
+      <p>${n} jogador(es). Com esse grupo o baralho terá ${cp*5} cartas (${cp} de cada personagem).</p>
+      ${st.host===st.me?`<button ${n<2?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar o jogo.</p>'}
+      <p class="err">${esc(err)}</p>`;
+  }
+  const pd=st.pd,my=st.turn===st.me;
+  let status='',ctl='';
+  if(st.phase==='action'){
+    status=my?'Sua vez. Escolha uma ação.':`Vez de ${nm(st.turn)}`;
+    if(my&&me.alive){
+      if(tgt)ctl=`Alvo de ${A[tgt]}:<br>`+st.players.filter(p=>p.alive&&p.pid!==st.me).map(p=>`<button onclick="mv({t:'act',a:'${tgt}',target:'${p.pid}'})">${esc(p.name)}</button>`).join('')+`<button class="alt" onclick="tgt=null;draw()">Voltar</button>`;
+      else ctl=Object.keys(A).map(a=>{
+        const need=a==='coup'?7:a==='assassinate'?3:0,dis=me.coins<need||(me.coins>=10&&a!=='coup'),tg=a==='coup'||a==='assassinate'||a==='steal';
+        return `<button ${dis?'disabled':''} onclick="${tg?`tgt='${a}';draw()`:`mv({t:'act',a:'${a}'})`}">${A[a]}</button>`}).join('')
+        +(me.coins>=10?'<p>Com 10 ou mais moedas, o Golpe é obrigatório.</p>':'');
+    }
+  }else if(st.phase==='react'){
+    const b=pd.block;
+    status=(b?`${nm(b.by)} bloqueia com ${N[b.char]}`:`${nm(pd.actor)} usou ${A[pd.a]}${pd.t?' em '+nm(pd.t):''}`)
+      +`<br><small>Aguardando: ${pd.wait.map(nm).join(', ')||'ninguém'}</small>`;
+    if(st.can)ctl=(st.can.chal?`<button onclick="mv({t:'chal'})">Desafiar</button>`:'')
+      +st.can.block.map(h=>`<button onclick="mv({t:'block',ch:'${h}'})">Bloquear com ${N[h]}</button>`).join('')
+      +`<button class="alt" onclick="mv({t:'pass'})">Deixar passar</button>`;
+  }else if(st.phase==='lose'){
+    status=st.lose===st.me?'Toque em uma das suas cartas para perdê-la.':`${nm(st.lose)} está escolhendo uma carta para perder.`;
+  }else if(st.phase==='exchange'){
+    if(st.xchg){
+      status=`Escolha ${st.xchg.keep} carta(s) para manter.`;
+      ctl=st.xchg.pool.map((c,i)=>`<span class="pick" onclick="tog(${i})">${card(c,sel.includes(i)?'sel':'')}</span>`).join('')
+        +`<br><button ${sel.length!==st.xchg.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`;
+    }else status=`${nm(st.turn)} está trocando cartas.`;
+  }else if(st.phase==='over'){
+    status=`<b>${nm(st.winner)} venceu!</b>`;
+    if(st.host===st.me)ctl=`<button onclick="s.emit('again')">Jogar de novo</button>`;
+  }
+  const myCards=me.cards.map((c,i)=>{
+    const pick=st.phase==='lose'&&st.lose===st.me&&!c.dead;
+    return pick?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${card(c.c,'sel')}</span>`:card(c.c,c.dead?'dead':'');
+  }).join('');
+  $.innerHTML=`<div class="row"><h2>Sala ${st.code}</h2><small>Cartas no monte: ${st.deck} (${st.copies} de cada)</small></div>
+    ${st.players.filter(p=>p.pid!==st.me).map(p=>`<div class="pl ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}"><div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div><div>${p.cards.map(c=>card(c.c,c.dead?'dead':'')).join('')}</div></div>`).join('')}
+    <div class="box">${status}<div>${ctl}</div></div>
+    <div class="pl me ${my?'turn':''} ${me.alive?'':'out'}"><div><b>Você</b><br><small>${me.coins} moedas</small></div><div>${myCards}</div></div>
+    ${me.alive?'':'<p>Você foi eliminado. Continue acompanhando a partida.</p>'}
+    <div class="box" id="log">${st.log.slice().reverse().map(esc).join('<br>')}</div>`;
+}
+draw();
+</script></body></html>
