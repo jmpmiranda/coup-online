@@ -8,7 +8,7 @@
 body{margin:0;background:var(--felt);color:var(--ink);font:16px/1.45 system-ui,sans-serif}
 h1,h2{font-family:Palatino,"Palatino Linotype",Georgia,serif;margin:.2em 0}
 h1{font-size:2.6rem}
-#app{max-width:640px;margin:0 auto;padding:14px}
+#app{max-width:720px;margin:0 auto;padding:12px}
 button,input{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px 14px;color:var(--ink)}
 button{cursor:pointer;background:var(--brass);color:#2a1d00;font-weight:600;margin:3px}
 button.alt{background:transparent;color:var(--ink)}
@@ -17,20 +17,36 @@ button:focus-visible,input:focus-visible{outline:3px solid #fff;outline-offset:2
 input{background:#0d2623;width:100%;margin:4px 0}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .top{justify-content:space-between;background:var(--panel);border-radius:10px;padding:8px 12px}
-.pl{background:var(--panel);border-radius:10px;padding:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;gap:8px;border-left:5px solid transparent}
-.pl.turn{border-color:var(--brass)}.pl.out{opacity:.45}
-.card{display:inline-block;min-width:70px;padding:8px 6px;margin:2px;border-radius:6px;text-align:center;font-size:13px;font-weight:600;border:2px solid #0004;color:#fff}
-.card.back{background:repeating-linear-gradient(45deg,#2b5f56,#2b5f56 6px,#244f48 6px,#244f48 12px);color:transparent}
-.card.dead{opacity:.45;text-decoration:line-through}.card.sel{outline:3px solid var(--brass)}
-.me .card{min-width:90px;padding:16px 8px;font-size:15px}
-.pick{cursor:pointer}
+.pl{background:var(--panel);border-radius:10px;padding:10px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;gap:8px}
 .box{background:#0d2623;border-radius:10px;padding:12px;margin:8px 0}
-#log{max-height:140px;overflow:auto;font-size:14px;color:var(--dim)}
-#cap{background:var(--brass);color:#2a1d00;border-radius:10px;padding:12px;margin:8px 0;font:700 1.15rem Palatino,Georgia,serif;text-align:center}
 .tabs{margin:8px 0}.code{font:700 2rem Palatino,Georgia,serif;letter-spacing:.2em;color:var(--brass)}
-.sw{width:34px;height:34px;padding:0;border-radius:50%;border:3px solid transparent}.sw.on{border-color:#fff}
+.sw{width:32px;height:32px;padding:0;border-radius:50%;border:3px solid transparent;margin:2px}.sw.on{border-color:#fff}
 .bar{height:8px;background:#0006;border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--brass)}
 .err{color:#ff9d8f}.ok{color:#9fe3b0}
+/* mesa */
+.table{position:relative;display:grid;grid-template-columns:minmax(78px,1fr) minmax(0,1.5fr) minmax(78px,1fr);grid-template-areas:"t t t" "l c r" "m m m";gap:10px 6px;background:radial-gradient(ellipse at center,#22735f,#0e3a32);border:7px solid #6b4423;border-radius:22px;padding:10px 6px;margin:8px 0;box-shadow:inset 0 0 40px #000a}
+.s-top{grid-area:t;display:flex;justify-content:space-evenly;gap:6px;flex-wrap:wrap}
+.s-left{grid-area:l}.s-right{grid-area:r}.s-me{grid-area:m}
+.center{grid-area:c;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;min-height:120px}
+.seat{position:relative;text-align:center;padding:4px;border-radius:12px;font-size:13px}
+.seat.turn{outline:2px solid var(--brass);background:#0003}.seat.out{opacity:.5}
+.who{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:3px}
+.s-left .who,.s-right .who{flex-direction:column;gap:0}
+.hand{display:flex;justify-content:center}
+.cd{width:var(--cw,70px);aspect-ratio:5/7;position:relative;margin:2px;flex:none}
+.cd svg{width:100%;height:100%;display:block;border-radius:7px;box-shadow:0 2px 6px #0008}
+.cd img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:7px}
+.cd.dead svg{filter:brightness(.72)}
+.cd.dead::after{content:"✕";position:absolute;top:3px;right:3px;width:18px;height:18px;line-height:18px;border-radius:50%;background:#c0392b;color:#fff;font-size:11px;font-weight:700;text-align:center}
+.pick{cursor:pointer}.pick .cd{outline:3px solid var(--brass);border-radius:8px}
+.deck{position:relative}.deck .cd{margin:0;box-shadow:3px 3px 0 #0a2a24,6px 6px 0 #0a2a24}
+.deck b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.3rem;color:#fff;text-shadow:0 1px 4px #000}
+.bub{position:absolute;z-index:5;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;background:#fff;color:#1d1d1d;padding:7px 11px;border-radius:12px;font-size:13px;font-weight:600;width:max-content;max-width:190px;box-shadow:0 2px 10px #0008}
+.s-me .bub{top:auto;bottom:100%;margin:0 0 4px}
+.rv{position:absolute;inset:0;z-index:8;background:#000b;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:8px}
+.rv p{margin:0;font:700 1.1rem Palatino,Georgia,serif}
+#cap{background:var(--brass);color:#2a1d00;border-radius:10px;padding:10px;margin:6px 0;font:700 1.1rem Palatino,Georgia,serif;text-align:center}
+#log{max-height:130px;overflow:auto;font-size:14px;color:var(--dim)}
 </style></head>
 <body><div id="app"></div>
 <script src="/socket.io/socket.io.js"></script>
@@ -38,23 +54,96 @@ input{background:#0d2623;width:100%;margin:4px 0}
 <script>
 const s=io(),$=document.getElementById('app');
 const N={duke:'Duque',assassin:'Assassino',captain:'Capitão',ambassador:'Embaixador',contessa:'Condessa'};
-const COL={duke:'#7b3fa0',assassin:'#34404c',captain:'#2574a9',ambassador:'#2a8a4f',contessa:'#a8392b'};
 const A={income:'Renda (+1)',aid:'Ajuda externa (+2)',coup:'Golpe (paga 7)',tax:'Duque: Taxar (+3)',assassinate:'Assassino: Assassinar (paga 3)',steal:'Capitão: Extorquir (+2)',exchange:'Embaixador: Trocar cartas'};
-const HC=['#1b1b1b','#3b2a1a','#8b5a2b','#d9b44a','#c0392b','#d9d9d9'],SKN=['#ffdbac','#f1c27d','#e0ac69','#c68642','#8d5524'],OC=['#2574a9','#2a8a4f','#a8392b','#7b3fa0','#34404c','#d4a94f'];
+const HC=['#111111','#3b2a1a','#6b4423','#a0662d','#d9b44a','#b5442c','#9a9a9a','#e8e8e8'],SKN=['#fde0c8','#f5cfa7','#e8b98a','#d09a68','#b0764a','#8a5530','#5e3a22'],OC=['#2574a9','#2a8a4f','#a8392b','#7b3fa0','#34404c','#d4a94f','#111111','#e8e8e8'],EYE=['#4a6a8a','#3b6b3b','#6b4a2a','#2a2a2a','#7a8a99','#8a5a9a'];
+const OPT={h:['Careca','Curto','Longo','Coque','Cacheado','Topete'],b:['Sem barba','Bigode','Barba','Cavanhaque'],cl:['Camiseta','Camisa','Paletó','Casaca'],x:[['','Nenhum'],['glasses','Óculos'],['monocle','Monóculo'],['tophat','Cartola'],['cap','Boné'],['shades','Escuros']]};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 let me=null,st=null,err='',msg=location.search.includes('ok=1')?'E-mail confirmado! Entre com seu e-mail e senha.':'',tab='play',mode='in',tgt=null,sel=[],inv=null;
 const api=m=>new Promise(r=>s.emit('api',m,r));
 const eff=u=>{const k=u.skin&&SK.find(x=>x.id===u.skin);return k?k.a:u.avatar};
 const refresh=async()=>{const r=await api({t:'me'});if(r.me)me=r.me};
 
-function av(a,z=48){a=a||{};const sk=a.skin||'#f1c27d',hc=a.hc||'#222',oc=a.oc||'#2574a9',h=a.h||0;
- const cap=`<path d="M17 28c0-12 6-16 15-16s15 4 15 16c-3-5-8-7-15-7s-12 2-15 7z" fill="${hc}"/>`;
- const back=h===2?`<path d="M15 46V28c0-12 7-18 17-18s17 6 17 18v18z" fill="${hc}"/>`:'';
- const front=h===1||h===2?cap:h===3?cap+`<circle cx="32" cy="9" r="6" fill="${hc}"/>`:'';
- const x={crown:'<path d="M20 17l3-10 5 5 4-8 4 8 5-5 3 10z" fill="#f1c40f"/>',patch:'<circle cx="38" cy="30" r="4" fill="#111"/><path d="M17 22l30 12" stroke="#111" stroke-width="1.5"/>',hat:'<path d="M16 20h32l-5-12H21z" fill="#6b3f1d"/><rect x="14" y="19" width="36" height="3" fill="#4a2a10"/>',mask:'<rect x="18" y="26" width="28" height="7" rx="3" fill="#111"/>'}[a.x]||'';
- return `<svg width="${z}" height="${z}" viewBox="0 0 64 64">${back}<path d="M10 64c0-14 10-18 22-18s22 4 22 18z" fill="${oc}"/><circle cx="32" cy="30" r="14" fill="${sk}"/>${front}<circle cx="27" cy="31" r="1.8" fill="#222"/><circle cx="37" cy="31" r="1.8" fill="#222"/><path d="M27 38q5 4 10 0" stroke="#222" fill="none" stroke-width="1.5"/>${x}</svg>`}
-const card=(c,x='')=>c?`<span class="card ${x}" style="background:${COL[c]}">${N[c]}</span>`:`<span class="card back ${x}">?</span>`;
+/* ---------- Personagens ---------- */
+const shade=(h,p)=>{const n=parseInt(h.slice(1),16),f=c=>Math.round(c+(p>0?255-c:c)*p).toString(16).padStart(2,'0');return '#'+f(n>>16)+f(n>>8&255)+f(n&255)};
+const SP={
+lupin:z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><radialGradient id="lf" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#f3d6b8"/><stop offset="1" stop-color="#d9ae88"/></radialGradient><linearGradient id="lh" x1="0" x2="1"><stop offset="0" stop-color="#14141a"/><stop offset=".45" stop-color="#3a3a48"/><stop offset="1" stop-color="#101016"/></linearGradient></defs>
+<path d="M4 100c3-24 20-32 46-32s43 8 46 32z" fill="#101016"/><path d="M39 68l11 24 11-24z" fill="#f6f4ee"/><path d="M30 70l11 30h-9zM70 70l-11 30h9z" fill="#23232d"/>
+<path d="M50 73l-9-4v8zM50 73l9-4v8z" fill="#07070a"/><rect x="47.500" y="70.500" width="5" height="5" rx="1" fill="#15151b"/><circle cx="34" cy="80" r="2.200" fill="#c0392b"/>
+<path d="M43 56h14v14q-7 5-14 0z" fill="#c99a75"/><ellipse cx="33.500" cy="44" rx="3" ry="5" fill="#e0b794"/><ellipse cx="66.500" cy="44" rx="3" ry="5" fill="#e0b794"/>
+<ellipse cx="50" cy="43" rx="16.500" ry="20" fill="url(#lf)"/><path d="M33.500 40c-1-12 5-17 16.500-17s17.500 5 16.500 17c-3-7-6-9-10-9-8 3-16 3-21 0-1 2-2 5-2 9z" fill="#17120e"/>
+<ellipse cx="50" cy="26" rx="27" ry="5.500" fill="#0c0c11"/><path d="M31 26V7q0-4 4-4h30q4 0 4 4v19z" fill="url(#lh)"/><rect x="31" y="19" width="38" height="5.500" fill="#2b2b36"/><path d="M36 8v12" stroke="#7a7a8a" stroke-width="1.200" opacity=".6"/>
+<ellipse cx="43.500" cy="43" rx="3.400" ry="2.200" fill="#fff"/><circle cx="43.500" cy="43" r="1.800" fill="#2b2118"/><ellipse cx="57" cy="43" rx="3.400" ry="2.200" fill="#fff"/><circle cx="57" cy="43" r="1.800" fill="#2b2118"/>
+<path d="M38 38q5-3 10 0" stroke="#17120e" stroke-width="1.700" fill="none" stroke-linecap="round"/><path d="M52 37q5-4 10-1" stroke="#17120e" stroke-width="1.700" fill="none" stroke-linecap="round"/>
+<circle cx="57" cy="43" r="7" fill="#fff" fill-opacity=".14" stroke="#d4a94f" stroke-width="1.600"/><path d="M64 47q9 14-4 31" stroke="#d4a94f" stroke-width=".9" fill="none"/>
+<path d="M50 45q-3 8-1 10q2 1 4 0" stroke="#b98760" fill="none" stroke-width="1.200"/><path d="M41 57q4-3 9-1q5-2 9 1q-4 3-9 1q-5 2-9-1z" fill="#17120e"/><path d="M41 57q-3 0-3-2.500M59 57q3 0 3-2.500" stroke="#17120e" stroke-width="1" fill="none"/>
+<path d="M44 62q5 2 11-1" stroke="#8a4a3a" stroke-width="1.500" fill="none" stroke-linecap="round"/></svg>`,
+napoleao:z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><radialGradient id="nf" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="#f1d3b3"/><stop offset="1" stop-color="#d6ac86"/></radialGradient></defs>
+<path d="M3 100c3-26 22-34 47-34s44 8 47 34z" fill="#1c3366"/><path d="M40 66l10 34 10-34z" fill="#f1eee4"/><path d="M33 66l15 34H33zM67 66l-15 34h15z" fill="#1c3366" stroke="#b3262d" stroke-width="1.600"/>
+<path d="M36 60q14 10 28 0l2 9q-16 9-32 0z" fill="#b3262d"/><path d="M38 62q12 8 24 0" stroke="#d4a94f" stroke-width="1.200" fill="none" stroke-dasharray="2 1.500"/>
+<ellipse cx="15" cy="77" rx="12" ry="5" fill="#d4a94f" transform="rotate(-16 15 77)"/><ellipse cx="85" cy="77" rx="12" ry="5" fill="#d4a94f" transform="rotate(16 85 77)"/>
+<path d="M5 80l-2 8M9 81l-2 8M13 82l-2 8M95 80l2 8M91 81l2 8M87 82l2 8" stroke="#d4a94f" stroke-width="1.200"/>
+<circle cx="69" cy="84" r="3.200" fill="#f4f4f4" stroke="#b3262d" stroke-width="1.200"/><circle cx="69" cy="84" r="1" fill="#b3262d"/>
+<path d="M43 54h14v11q-7 4-14 0z" fill="#c99d78"/><ellipse cx="33" cy="43" rx="3" ry="5" fill="#dcb592"/><ellipse cx="67" cy="43" rx="3" ry="5" fill="#dcb592"/>
+<ellipse cx="50" cy="42" rx="17.500" ry="19.500" fill="url(#nf)"/>
+<path d="M33 38c0-9 6-13 17-13s17 4 17 13c-2-4-5-6-8-6l-6 3-4-2-6 4-5-1c-3 1-4 3-5 2z" fill="#4a3322"/><path d="M42 30q6 6 15 2" stroke="#4a3322" stroke-width="2.400" fill="none" stroke-linecap="round"/>
+<path d="M33 40v7M67 40v7" stroke="#4a3322" stroke-width="2"/>
+<ellipse cx="43.500" cy="42" rx="3.400" ry="2.200" fill="#fff"/><circle cx="43.500" cy="42" r="1.800" fill="#6f8397"/><ellipse cx="56.500" cy="42" rx="3.400" ry="2.200" fill="#fff"/><circle cx="56.500" cy="42" r="1.800" fill="#6f8397"/>
+<path d="M38 37.500q5-2.500 10-.5M52 37q5-2 10 .5" stroke="#4a3322" stroke-width="1.700" fill="none" stroke-linecap="round"/>
+<path d="M50 44q-3 8-1 10q2 1 4 0" stroke="#b0805c" fill="none" stroke-width="1.200"/><path d="M44.500 58.500q5.500 1.500 11 0" stroke="#9a5a4a" stroke-width="1.600" fill="none" stroke-linecap="round"/><path d="M42 60q8 9 16 0" stroke="#c49a78" stroke-width=".8" fill="none"/>
+<path d="M5 31Q50-3 95 31Q72 21 50 23Q28 21 5 31z" fill="#101015"/><path d="M7 30Q50-1 93 30" stroke="#d4a94f" fill="none" stroke-width="1.200"/>
+<circle cx="80" cy="25" r="4.200" fill="#b3262d"/><circle cx="80" cy="25" r="2.800" fill="#fff"/><circle cx="80" cy="25" r="1.400" fill="#1c3366"/></svg>`
+};
+const ACC={
+ glasses:'<g fill="none" stroke="#222" stroke-width="1.400"><circle cx="43" cy="42" r="5.500"/><circle cx="57" cy="42" r="5.500"/><path d="M48.500 42h3M37.500 41l-4-1M62.500 41l4-1"/></g>',
+ monocle:'<circle cx="57" cy="42" r="6" fill="#fff" fill-opacity=".15" stroke="#d4a94f" stroke-width="1.400"/><path d="M63 46q6 12-2 24" stroke="#d4a94f" stroke-width=".8" fill="none"/>',
+ tophat:'<ellipse cx="50" cy="24" rx="25" ry="5" fill="#111"/><path d="M32 24V6q0-3 3-3h30q3 0 3 3v18z" fill="#1c1c24"/><rect x="32" y="18" width="36" height="5" fill="#a8392b"/>',
+ cap:'<path d="M32 30c0-12 8-16 18-16s18 4 18 16z" fill="#2574a9"/><path d="M30 30h40l8 3H30z" fill="#1b5a85"/>',
+ shades:'<path d="M35 39h30v5q-2 5-7 5-5 0-6-5h-4q-1 5-6 5-5 0-7-5z" fill="#111"/>',
+ crown:'<path d="M34 25l3-13 7 6 6-9 6 9 7-6 3 13z" fill="#f1c40f" stroke="#9a7500"/>',
+ patch:'<path d="M34 34l32 12" stroke="#111" stroke-width="1.500"/><ellipse cx="57" cy="43" rx="5" ry="4" fill="#111"/>',
+ hat:'<ellipse cx="50" cy="26" rx="26" ry="5" fill="#6b3f1d"/><path d="M34 26c0-14 8-18 16-18s16 4 16 18z" fill="#8b5a2b"/><path d="M62 16q10-8 14-2" stroke="#2a8a4f" stroke-width="2.400" fill="none"/>',
+ mask:'<path d="M34 38h32v8q-6 2-9-2h-14q-3 4-9 2z" fill="#111"/><circle cx="43" cy="42" r="1.200" fill="#fff"/><circle cx="57" cy="42" r="1.200" fill="#fff"/>'
+};
+function av(a,z=48){
+ a=a||{};if(a.sp)return SP[a.sp](z);
+ const sk=a.skin||'#f5cfa7',hc=a.hc||'#3b2a1a',oc=a.oc||'#2574a9',ec=a.e||'#4a6a8a',h=a.h==null?1:a.h,b=a.b||0,cl=a.cl||0,x=a.x||'';
+ const dk=shade(sk,-.2),lt=shade(sk,.25),hd=shade(hc,-.35),hl=shade(hc,.3),id='g'+sk.slice(1);
+ const sh='<path d="M8 100c2-22 18-30 42-30s40 8 42 30z" fill="';
+ const body=[
+  sh+oc+'"/><path d="M40 70q10 9 20 0" fill="none" stroke="'+shade(oc,-.3)+'" stroke-width="2"/>',
+  sh+oc+'"/><path d="M40 70l10 13 10-13-4-3-6 6-6-6z" fill="#fff"/>',
+  sh+shade(oc,-.2)+'"/><path d="M40 70l10 30 10-30-10 8z" fill="#f4f4f0"/><path d="M40 70l-6 30 12-24zM60 70l6 30-12-24z" fill="'+shade(oc,-.4)+'"/>',
+  sh+shade(oc,-.45)+'"/><path d="M38 70l12 14 12-14 6 30H32z" fill="#f4efe0"/><path d="M38 70l12 14 12-14" fill="none" stroke="'+shade(oc,-.6)+'" stroke-width="3"/><circle cx="50" cy="90" r="1.600" fill="#d4a94f"/><circle cx="50" cy="96" r="1.600" fill="#d4a94f"/>'
+ ][cl];
+ const curto='<path d="M33 41c-2-17 6-25 17-25s19 8 17 25c-2-8-5-12-9-14-6 3-16 3-22-1-2 3-2 7-3 15z" fill="'+hc+'"/><path d="M40 22q8-4 17-1" stroke="'+hl+'" fill="none" stroke-width="1.500"/>';
+ const back=h===2?'<path d="M30 46c-3-22 5-32 20-32s23 10 20 32l3 30q-8 6-12 2l-2-24H41l-2 24q-4 4-12-2z" fill="'+hd+'"/>':'';
+ const front=[ '', curto, curto, curto+'<circle cx="50" cy="12" r="6.500" fill="'+hc+'"/>',
+  [36,43,50,57,64].map((c,i)=>`<circle cx="${c}" cy="${i%2?20:23}" r="7.500" fill="${hc}"/>`).join('')+'<path d="M33 41c-2-12 3-17 6-18l22 0c4 2 8 7 6 18-3-8-6-11-9-12H42c-4 1-7 4-9 12z" fill="'+hc+'"/>',
+  '<path d="M33 42c-3-20 4-29 18-29 13 0 21 9 16 29-1-9-4-14-8-16-8-4-14 0-20 2-3 3-5 8-6 14z" fill="'+hc+'"/><path d="M37 21q10-9 25-3" stroke="'+hl+'" fill="none" stroke-width="1.600"/>'][h];
+ const fh=[ '', '<path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="'+hd+'"/>',
+  '<path d="M33 49q0 24 17 26 17-2 17-26-3 14-17 15-14-1-17-15z" fill="'+hd+'"/><path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="'+hd+'"/>',
+  '<path d="M45 62q5 11 10 0-5 3-10 0z" fill="'+hd+'"/><path d="M43 57q3-2 7-1 4-1 7 1-3 3-7 1-4 2-7-1z" fill="'+hd+'"/>'][b];
+ return `<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><radialGradient id="${id}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="${lt}"/><stop offset="1" stop-color="${sk}"/></radialGradient></defs>${back}<path d="M43 56h14v16q-7 5-14 0z" fill="${dk}"/>${body}<ellipse cx="33" cy="45" rx="3" ry="5" fill="${sk}"/><ellipse cx="67" cy="45" rx="3" ry="5" fill="${sk}"/><ellipse cx="50" cy="42" rx="17" ry="21" fill="url(#${id})"/><circle cx="38" cy="50" r="4" fill="#e8908a" opacity=".18"/><circle cx="62" cy="50" r="4" fill="#e8908a" opacity=".18"/>${front}<ellipse cx="43" cy="42" rx="3.600" ry="2.400" fill="#fff"/><ellipse cx="57" cy="42" rx="3.600" ry="2.400" fill="#fff"/><circle cx="43" cy="42" r="1.900" fill="${ec}"/><circle cx="57" cy="42" r="1.900" fill="${ec}"/><circle cx="43" cy="42" r=".9" fill="#111"/><circle cx="57" cy="42" r=".9" fill="#111"/><circle cx="43.600" cy="41.300" r=".5" fill="#fff"/><circle cx="57.600" cy="41.300" r=".5" fill="#fff"/><path d="M38 36.500q5-3 9 0M53 36.500q4-3 9 0" stroke="${hd}" stroke-width="1.800" fill="none" stroke-linecap="round"/><path d="M50 44q-3 8-1 10q2 1 4 0" stroke="${dk}" fill="none" stroke-width="1.300"/>${fh}<path d="M44 60q6 4 12 0" stroke="#9a4a3a" fill="none" stroke-width="1.600" stroke-linecap="round"/>${ACC[x]||''}</svg>`}
 
+/* ---------- Cartas do Coup (ilustrações originais) ---------- */
+const CT={duke:{bg:'#4b2170',hl:'#7b3fa0',n:'DUQUE'},assassin:{bg:'#161b22',hl:'#2e3846',n:'ASSASSINO'},captain:{bg:'#143d63',hl:'#2574a9',n:'CAPITÃO'},ambassador:{bg:'#17543a',hl:'#2a8a4f',n:'EMBAIXADOR'},contessa:{bg:'#6e1f17',hl:'#a8392b',n:'CONDESSA'}};
+const EY=(y,sk)=>`<circle cx="44.500" cy="${y}" r="1.600" fill="#222"/><circle cx="55.500" cy="${y}" r="1.600" fill="#222"/>`;
+const FIG={
+duke:`<path d="M16 116c0-24 14-32 34-32s34 8 34 32z" fill="#2f1049"/><path d="M26 88q24 14 48 0l5 8q-29 18-58 0z" fill="#f4efe6"/><circle cx="50" cy="58" r="15" fill="#ecc19a"/><path d="M36 62q14 24 28 0q-5 7-14 7t-14-7z" fill="#d8d8d8"/>${EY(56)}<path d="M45 63q5 2 10 0" stroke="#7a3b2a" fill="none" stroke-width="1.200"/><path d="M33 47l3-17 8 9 6-14 6 14 8-9 3 17z" fill="#f1c40f" stroke="#9a7500"/><rect x="33" y="45" width="34" height="5" fill="#f1c40f"/><circle cx="50" cy="38" r="1.800" fill="#c0392b"/>`,
+assassin:`<path d="M30 96q20 12 40 0l8 22H22z" fill="#1c232c"/><path d="M22 118C20 66 32 30 50 30s30 36 28 88z" fill="#0b0f14"/><ellipse cx="50" cy="58" rx="12" ry="15" fill="#05070a"/><ellipse cx="45" cy="56" rx="2.600" ry="1.500" fill="#ff5a47"/><ellipse cx="55" cy="56" rx="2.600" ry="1.500" fill="#ff5a47"/><path d="M68 112L84 66l4 2-12 46z" fill="#d5dce3"/><path d="M68 112L84 66" stroke="#fff" stroke-width=".8"/><rect x="63" y="108" width="16" height="4" rx="1" fill="#8b5a2b" transform="rotate(-18 71 110)"/>`,
+captain:`<path d="M18 112L30 70" stroke="#d5dce3" stroke-width="2.500"/><path d="M14 118c0-26 14-34 36-34s36 8 36 34z" fill="#0d2a44"/><path d="M38 86l12 12 12-12-4-4h-16z" fill="#f4efe6"/><path d="M42 84q8 6 16 0l2 5q-10 6-20 0z" fill="#b3262d"/><circle cx="50" cy="58" r="15" fill="#e6b88f"/><path d="M36 60q14 18 28 0q-3 4-14 4t-14-4z" fill="#3a2a1c" opacity=".55"/>${EY(56)}<path d="M45 63q5 2 10 0" stroke="#7a3b2a" fill="none" stroke-width="1.200"/><path d="M22 48Q50 14 78 48Q62 38 50 40Q38 38 22 48z" fill="#0a1824" stroke="#d4a94f" stroke-width="1.200"/><path d="M72 40q12-14 6-22" stroke="#f4efe6" stroke-width="3" fill="none"/>`,
+ambassador:`<path d="M14 118c0-26 14-34 36-34s36 8 36 34z" fill="#0f3a27"/><path d="M36 84h28l-4 14-10-6-10 6z" fill="#f4efe6"/><path d="M34 118V92M66 118V92" stroke="#d4a94f" stroke-width="2"/><circle cx="50" cy="58" r="15" fill="#d9a77c"/><path d="M34 54q16-22 32 0q-6-8-16-8t-16 8z" fill="#2a2a2a"/>${EY(57)}<path d="M45 64q5 2 10 0" stroke="#7a3b2a" fill="none" stroke-width="1.200"/><rect x="58" y="88" width="28" height="17" rx="3" fill="#efe2b8" transform="rotate(-12 72 96)"/><circle cx="74" cy="102" r="4" fill="#b3262d"/>`,
+contessa:`<path d="M20 118c0-20 12-30 30-30s30 10 30 30z" fill="#4a0f0a"/><path d="M30 64c-6-30 6-42 20-42s26 12 20 42c-4-10-6-16-6-20-6 6-22 6-28 0 0 4-2 10-6 20z" fill="#2a1510"/><path d="M34 90q16 14 32 0l-2-5q-14 10-28 0z" fill="#f1d2b4"/><circle cx="50" cy="58" r="14" fill="#f1d2b4"/><path d="M36 50q14-12 28 0q-14-4-28 0z" fill="#2a1510"/>${EY(57)}<path d="M45 65q5 3 10 0" stroke="#b3262d" stroke-width="2" fill="none"/><path d="M38 42l3-7 4 5 5-9 5 9 4-5 3 7z" fill="#f1c40f"/><path d="M62 114l10-42 16 10z" fill="#f3ecd9" stroke="#d4a94f"/>`
+};
+function cardArt(c){
+ if(!c||c==='back')return `<rect width="100" height="140" rx="7" fill="#1a3a52"/><rect x="5" y="5" width="90" height="130" rx="4" fill="none" stroke="#d4a94f" stroke-width="2"/><path d="M50 22L80 70L50 118L20 70z" fill="none" stroke="#d4a94f" stroke-width="1.500"/><text x="50" y="76" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="17" fill="#d4a94f">COUP</text>`;
+ const t=CT[c];
+ return `<rect width="100" height="140" rx="7" fill="${t.bg}"/><circle cx="50" cy="62" r="40" fill="${t.hl}" opacity=".85"/>${FIG[c]}<rect x="3" y="3" width="94" height="134" rx="5" fill="none" stroke="#d4a94f" stroke-width="2"/><rect x="6" y="116" width="88" height="19" rx="3" fill="#000" fill-opacity=".7"/><text x="50" y="129.500" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="${t.n.length>8?10:12}" fill="#f3ecd9" letter-spacing="1">${t.n}</text>`}
+// para usar suas próprias imagens, coloque duke.png, assassin.png, captain.png, ambassador.png, contessa.png e back.png em public/cards
+const IMG={};['duke','assassin','captain','ambassador','contessa','back'].forEach(c=>{const i=new Image();i.onload=()=>{IMG[c]=1;draw()};i.src='/cards/'+c+'.png'});
+const cardHtml=(c,dead)=>{const k=c||'back';return `<div class="cd ${dead?'dead':''}"><svg viewBox="0 0 100 140">${cardArt(k)}</svg>${IMG[k]?`<img src="/cards/${k}.png" alt="">`:''}</div>`};
+
+/* ---------- Conexão ---------- */
 s.on('connect',async()=>{const tk=localStorage.tk;if(tk){const r=await api({t:'tok',tk});if(r.me){me=r.me;if(localStorage.code)s.emit('join',{code:localStorage.code})}else localStorage.removeItem('tk')}draw()});
 s.on('state',async x=>{if(!st)await refresh();st=x;err='';localStorage.code=x.code;if(!x.xchg)sel=[];if(x.phase!=='action')tgt=null;draw()});
 s.on('err',m=>{err=m;if(!st)localStorage.removeItem('code');draw()});
@@ -65,15 +154,17 @@ const leave=async()=>{st=null;localStorage.removeItem('code');await refresh();dr
 const tog=i=>{const k=st.xchg.keep;if(sel.includes(i))sel=sel.filter(x=>x!==i);else if(sel.length<k)sel.push(i);draw()};
 const g=i=>document.getElementById(i).value.trim();
 async function auth(){
-  const m=mode==='up'?{t:'reg',email:g('e'),name:g('n'),pass:document.getElementById('p').value}:{t:'login',email:g('e'),pass:document.getElementById('p').value};
+  const p=document.getElementById('p').value,m=mode==='up'?{t:'reg',email:g('e'),name:g('n'),pass:p}:{t:'login',email:g('e'),pass:p};
   const r=await api(m);err='';msg='';
   if(r.err)err=r.err;else if(r.verify){msg='Enviamos um e-mail para '+m.email+'. Abra a mensagem e toque em Confirmar conta. Depois é só entrar aqui.';mode='in'}
   else{localStorage.tk=r.token;me=r.me;if(location.search)history.replaceState(0,'','/')}
   draw();
 }
 async function call(m){const r=await api(m);if(r.err)err=r.err;else{err='';if(r.me)me=r.me}draw()}
-const setAv=(k,v)=>{const a={...me.avatar,[k]:v};me.avatar=a;me.skin=null;call({t:'avatar',a})};
+const setAv=(k,v)=>{me.avatar={...me.avatar,[k]:v};me.skin=null;call({t:'avatar',a:me.avatar})};
+const sa=(k,v)=>`setAv("${k}",${JSON.stringify(v)})`;
 
+/* ---------- Telas ---------- */
 function authView(){return `<h1>Coup</h1><p>Blefe, desafie e seja o último com influência.</p>
  <div class="box"><h2>${mode==='up'?'Criar conta':'Entrar'}</h2>
  <input id="e" type="email" placeholder="E-mail" autocomplete="email">
@@ -94,14 +185,17 @@ function homeView(){
   ${me.friends.map(f=>`<div class="pl"><div class="row">${av(f.av,40)}<b>${esc(f.name)}</b></div><small>${f.on?'online':'offline'}</small></div>`).join('')||'<p>Você ainda não tem amigos. Troque códigos para começar.</p>'}
   <p><small>Para jogar juntos: crie uma sala e convide seus amigos online pelo lobby.</small></p>`;
  if(tab==='avatar'){
-  const sw=(k,L,cur)=>L.map(c=>`<button class="sw ${cur===c?'on':''}" style="background:${c}" aria-label="${c}" onclick="setAv('${k}','${c}')"></button>`).join('');
-  h+=`<div class="box row"><div>${av(eff(me),110)}</div><div style="flex:1;min-width:220px"><b>Cabelo</b><br>${['Careca','Curto','Longo','Coque'].map((n,i)=>`<button class="${me.avatar.h===i?'':'alt'}" onclick="setAv('h',${i})">${n}</button>`).join('')}<br><b>Cor do cabelo</b><br>${sw('hc',HC,me.avatar.hc)}<br><b>Pele</b><br>${sw('skin',SKN,me.avatar.skin)}<br><b>Roupa</b><br>${sw('oc',OC,me.avatar.oc)}</div></div>
-  <h2>Skins</h2>${SK.map(k=>{const own=!k.c||me.skins.includes(k.id);return `<div class="pl"><div class="row">${av(k.a,52)}<div><b>${k.n}</b><br><small>${k.r}</small></div></div>${own?(me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`):`<button ${me.pts<k.c?'disabled':''} onclick="call({t:'buy',id:'${k.id}'})">${k.c} pts</button>`}</div>`}).join('')}
+  const a=me.avatar,sw=(k,L,cur)=>L.map(c=>`<button class="sw ${cur===c?'on':''}" style="background:${c}" aria-label="${c}" onclick='${sa(k,c)}'></button>`).join('');
+  const ch=(k,L,cur)=>L.map((n,i)=>{const v=Array.isArray(n)?n[0]:i,t=Array.isArray(n)?n[1]:n;return `<button class="${cur===v?'':'alt'}" onclick='${sa(k,v)}'>${t}</button>`}).join('');
+  h+=`<div class="box row"><div>${av(eff(me),130)}</div><div style="flex:1;min-width:230px">
+   <b>Cabelo</b><br>${ch('h',OPT.h,a.h)}<br><b>Cor do cabelo</b><br>${sw('hc',HC,a.hc)}<br><b>Pele</b><br>${sw('skin',SKN,a.skin)}<br><b>Olhos</b><br>${sw('e',EYE,a.e||EYE[0])}<br>
+   <b>Barba</b><br>${ch('b',OPT.b,a.b||0)}<br><b>Roupa</b><br>${ch('cl',OPT.cl,a.cl||0)}<br>${sw('oc',OC,a.oc)}<br><b>Acessório</b><br>${ch('x',OPT.x,a.x||'')}</div></div>
+  <h2>Skins</h2>${SK.filter(k=>!k.owner||me.owner).map(k=>{const own=me.owner||!k.c||me.skins.includes(k.id);return `<div class="pl"><div class="row">${av(k.a,60)}<div><b>${k.n}</b><br><small>${k.r}${k.owner?' (só você)':''}</small></div></div>${own?(me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`):`<button ${me.pts<k.c?'disabled':''} onclick="call({t:'buy',id:'${k.id}'})">${k.c} pts</button>`}</div>`}).join('')}
   ${me.skin?`<button class="alt" onclick="call({t:'skin',id:null})">Usar meu personagem</button>`:''}`;
  }
  if(tab==='miss')h+=`<h2>Missões</h2><p>Cada partida dá 10 pontos, e vencer dá mais 30. Gaste na aba Personagem.</p>`+MS.map(k=>{const v=Math.min(me.stats[k.k],k.n),d=me.claimed.includes(k.id);return `<div class="pl"><div style="flex:1"><b>${k.t}</b> <small>(${v}/${k.n})</small><div class="bar"><i style="width:${v/k.n*100}%"></i></div></div>${d?'<small>Resgatada</small>':`<button ${v<k.n?'disabled':''} onclick="call({t:'claim',id:'${k.id}'})">+${k.p} pts</button>`}</div>`}).join('');
  if(tab==='cfg')h+=`<div class="box"><h2>Conta</h2><p>${esc(me.email)}<br>Código de jogador: <b>${me.code}</b></p><input id="nm" value="${esc(me.name)}" maxlength="14"><button onclick="call({t:'name',name:g('nm')})">Salvar nome</button><button class="alt" onclick="localStorage.clear();location.href='/'">Sair da conta</button></div>
-  <div class="box"><h2>Regras</h2><p>Cada jogador começa com 2 moedas e 2 cartas. Na sua vez, faça uma ação. Ações de personagem podem ser blefe e qualquer um pode desafiar. Quem perde o desafio perde uma carta. Quem fica sem cartas está fora, e vence o último de pé.</p>
+  <div class="box"><h2>Regras</h2><p>Cada jogador começa com 2 moedas e 2 cartas. Na sua vez, faça uma ação. Ações de personagem podem ser blefe e qualquer um pode duvidar. Quem perde a dúvida perde uma carta. Quem fica sem cartas está fora, e vence o último de pé.</p>
   <p><b>Renda</b> +1. <b>Ajuda externa</b> +2 (Duque bloqueia). <b>Golpe</b> paga 7 e o alvo perde uma carta (obrigatório com 10 moedas). <b>Duque</b> taxa +3. <b>Assassino</b> paga 3 e mata uma carta (Condessa bloqueia). <b>Capitão</b> extorque 2 moedas (Capitão ou Embaixador bloqueiam). <b>Embaixador</b> troca cartas.</p>
   <p>O baralho cresce com o número de jogadores: 4 jogadores usam 15 cartas (3 de cada).</p></div>`;
  return h+`<p class="err">${esc(err)}</p>`}
@@ -109,14 +203,23 @@ function homeView(){
 function lobbyView(){
  const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5)),host=st.host===st.me,fr=me.friends.filter(f=>f.on);
  return `<h1>Sala ${st.code}</h1><p>Passe o código para os amigos ou convide quem estiver online.</p>`
- +st.players.map(p=>`<div class="pl"><div class="row">${av(p.av,40)}<b>${esc(p.name)}</b>${p.bot?'<small>bot</small>':''}</div></div>`).join('')
+ +st.players.map(p=>`<div class="pl"><div class="row">${av(p.av,44)}<b>${esc(p.name)}</b>${p.bot?'<small>bot</small>':''}</div></div>`).join('')
  +`<p>${n} jogador(es): baralho de ${cp*5} cartas (${cp} de cada).</p>`
  +(host?`<button class="alt" onclick="s.emit('bot',1)">Adicionar bot</button><button class="alt" onclick="s.emit('bot',-1)">Remover bot</button><button ${n<2?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar.</p>')
  +(fr.length?`<div class="box">Convidar amigo online:<br>${fr.map(f=>`<button class="alt" onclick="api({t:'invite',code:'${f.code}',room:'${st.code}'})">${esc(f.name)}</button>`).join('')}</div>`:'')
  +`<button class="alt" onclick="leave()">Sair da sala</button><p class="err">${esc(err)}</p>`}
 
 function gameView(){
- const mp=st.players.find(p=>p.pid===st.me),nm=id=>esc((st.players.find(p=>p.pid===id)||{}).name||''),pd=st.pd,my=st.turn===st.me;
+ const n=st.players.length,idx=st.players.findIndex(p=>p.pid===st.me),mp=st.players[idx];
+ const nm=id=>esc((st.players.find(p=>p.pid===id)||{}).name||''),pd=st.pd,my=st.turn===st.me;
+ const o=[];for(let i=1;i<n;i++)o.push(st.players[(idx+i)%n]);
+ const L=o.length>=2?o[0]:null,Rr=o.length>=2?o[o.length-1]:null,T=o.length===1?o:o.slice(1,-1);
+ const seat=(p,cls,w)=>{
+  const say=st.say&&st.say.pid===p.pid?`<div class="bub">${esc(st.say.text)}</div>`:'';
+  const picking=p.pid===st.me&&st.phase==='lose'&&st.lose===st.me;
+  const hand=p.cards.map((c,i)=>picking&&!c.dead?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${cardHtml(c.c,0)}</span>`:cardHtml(c.c,c.dead)).join('');
+  return `<div class="seat ${cls} ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}" style="--cw:${w}px">${say}<div class="who">${av(p.av,cls==='s-me'?46:34)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div class="hand">${hand}</div></div>`};
+ const rv=st.reveal?`<div class="rv"><div style="--cw:84px">${cardHtml(st.reveal.c,!st.reveal.ok)}</div><p>${nm(st.reveal.pid)} ${st.reveal.ok?'tinha':'não tinha'} ${N[st.reveal.c]}${st.reveal.ok?'!':'. Era blefe!'}</p></div>`:'';
  let status='',ctl='';
  if(st.phase==='action'){
   status=my?'Sua vez. Escolha uma ação.':`Vez de ${nm(st.turn)}`;
@@ -127,24 +230,32 @@ function gameView(){
   }
  }else if(st.phase==='react'){
   const b=pd.block;
-  status=(b?`${nm(b.by)} bloqueia com ${N[b.char]}`:`${nm(pd.actor)}: ${A[pd.a]}${pd.t?' em '+nm(pd.t):''}`)+`<br><small>Aguardando: ${pd.wait.map(nm).join(', ')||'ninguém'}</small>`;
-  if(st.can)ctl=(st.can.chal?`<button onclick="mv({t:'chal'})">Desafiar</button>`:'')+st.can.block.map(h=>`<button onclick="mv({t:'block',ch:'${h}'})">Bloquear com ${N[h]}</button>`).join('')+`<button class="alt" onclick="mv({t:'pass'})">Deixar passar</button>`;
+  status=(b?`${nm(b.by)} bloqueou com ${N[b.char]}. Você duvida?`:`${nm(pd.actor)}: ${A[pd.a]}${pd.t?' em '+nm(pd.t):''}`)+`<br><small>Aguardando: ${pd.wait.map(nm).join(', ')||'ninguém'}</small>`;
+  if(st.can)ctl=(st.can.chal?`<button onclick="mv({t:'chal'})">Duvidar</button>`:'')+st.can.block.map(h=>`<button onclick="mv({t:'block',ch:'${h}'})">Bloquear com ${N[h]}</button>`).join('')+`<button class="alt" onclick="mv({t:'pass'})">Deixar passar</button>`;
+ }else if(st.phase==='wait'){
+  status='<small>Acompanhe a jogada...</small>';
  }else if(st.phase==='lose'){
   status=st.lose===st.me?'Toque em uma das suas cartas para perdê-la.':`${nm(st.lose)} está escolhendo uma carta para perder.`;
  }else if(st.phase==='exchange'){
   if(st.xchg){status=`Escolha ${st.xchg.keep} carta(s) para manter.`;
-   ctl=st.xchg.pool.map((c,i)=>`<span class="pick" onclick="tog(${i})">${card(c,sel.includes(i)?'sel':'')}</span>`).join('')+`<br><button ${sel.length!==st.xchg.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`;
+   ctl=`<div class="row" style="--cw:72px">`+st.xchg.pool.map((c,i)=>`<span class="pick" onclick="tog(${i})" style="${sel.includes(i)?'filter:drop-shadow(0 0 6px #d4a94f)':''}">${cardHtml(c,0)}</span>`).join('')+`</div><button ${sel.length!==st.xchg.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`;
   }else status=`${nm(st.turn)} está trocando cartas.`;
  }else if(st.phase==='over'){
   status=`<b>${nm(st.winner)} venceu!</b>`;
   ctl=(st.host===st.me?`<button onclick="s.emit('again')">Jogar de novo</button>`:'')+`<button class="alt" onclick="leave()">Voltar ao início</button>`;
  }
- const mine=mp.cards.map((c,i)=>st.phase==='lose'&&st.lose===st.me&&!c.dead?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${card(c.c,'sel')}</span>`:card(c.c,c.dead?'dead':'')).join('');
- return `<div class="row"><h2>Sala ${st.code}</h2><small>Monte: ${st.deck} cartas (${st.copies} de cada)</small></div>
+ const tw=n>=7?38:n>=5?46:54;
+ return `<div class="row"><h2>Sala ${st.code}</h2></div>
  <div id="cap" aria-live="polite">${esc(st.log[st.log.length-1]||'')}</div>
- ${st.players.filter(p=>p.pid!==st.me).map(p=>`<div class="pl ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}"><div class="row">${av(p.av,42)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div>${p.cards.map(c=>card(c.c,c.dead?'dead':'')).join('')}</div></div>`).join('')}
+ <div class="table">
+  ${T.length?`<div class="s-top">${T.map(p=>seat(p,'s-t',tw)).join('')}</div>`:''}
+  ${L?`<div class="s-left">${seat(L,'s-l',36)}</div>`:''}
+  <div class="center"><div class="deck" style="--cw:58px">${cardHtml(null,0)}<b>${st.deck}</b></div><small>Monte</small></div>
+  ${Rr?`<div class="s-right">${seat(Rr,'s-r',36)}</div>`:''}
+  <div class="s-me">${seat(mp,'s-me',84)}</div>
+  ${rv}
+ </div>
  <div class="box">${status}<div>${ctl}</div></div>
- <div class="pl me ${my?'turn':''} ${mp.alive?'':'out'}"><div class="row">${av(mp.av,52)}<div><b>${esc(mp.name)}</b><br><small>${mp.coins} moedas</small></div></div><div>${mine}</div></div>
  ${mp.alive?'':'<p>Você foi eliminado. Continue acompanhando a partida.</p>'}
  <div class="box" id="log">${st.log.slice().reverse().map(esc).join('<br>')}</div>
  ${st.phase==='over'?'':'<button class="alt" onclick="leave()">Sair da sala</button>'}`}
