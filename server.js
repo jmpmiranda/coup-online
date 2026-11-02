@@ -176,6 +176,14 @@ async function api(s, m) {
       else got = raffle(u, r.n);
       save(); return { me: profile(u), got };
     }
+    case 'chpass': {
+      const pass = String(m.pass || '');
+      if (!crypto.timingSafeEqual(Buffer.from(hash(String(m.old || ''), u.salt)), Buffer.from(u.hash))) throw new Error('A senha atual está incorreta.');
+      if (pass.length < 6) throw new Error('A nova senha precisa de 6 caracteres ou mais.');
+      u.salt = crypto.randomBytes(8).toString('hex'); u.hash = hash(pass, u.salt);
+      for (const t in db.sessions) if (db.sessions[t] === u.id) delete db.sessions[t];
+      save(); return login(s, u);
+    }
     case 'evadd': {
       if (!isOwner(u)) throw new Error('Só o dono do app pode criar eventos.');
       const t = String(m.title || '').trim().slice(0, 60), x = String(m.text || '').trim().slice(0, 400);
