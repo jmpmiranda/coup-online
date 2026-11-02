@@ -189,6 +189,7 @@ async function auth(){
  else{localStorage.tk=r.token;me=r.me;if(location.search)history.replaceState(0,'','/')}
  draw();
 }
+async function chpass(){const o=document.getElementById('op').value,n=document.getElementById('np').value;const r=await api({t:'chpass',old:o,pass:n});if(r.err){err=r.err;msg=''}else{localStorage.tk=r.token;me=r.me;err='';msg='Senha alterada com sucesso!'}draw()}
 async function call(m){const r=await api(m);if(r.err){err=r.err;msg=''}else{err='';msg=r.got||'';if(r.me)me=r.me}draw()}
 const setAv=(k,v)=>{me.avatar={...me.avatar,[k]:v};me.skin=null;call({t:'avatar',a:me.avatar})};
 const sa=(k,v)=>`setAv("${k}",${JSON.stringify(v)})`;
@@ -235,6 +236,7 @@ const mrow=(k,v,done,daily)=>{const x=Math.min(v,k.n);return `<div class="pl"><d
 const itRow=e=>`<div class="pl"><div><b>${e.n}</b><br><small>${e.txt||'Movimento do personagem na partida'}</small></div>${ownedIt(e)?'<small>Você tem</small>':`<button ${me.coins<e.c?'disabled':''} onclick="call({t:'buy',id:'${e.id}'})">${e.c} moedas</button>`}</div>`;
 const SCR={
  cfg:()=>sub('Configurações',`<div class="box"><h2>Conta</h2><p>${esc(me.email)}<br>Código de jogador: <b>${me.code}</b></p><input id="nm" value="${esc(me.name)}" maxlength="14"><button onclick="call({t:'name',name:g('nm')})">Salvar nome</button><button class="alt" onclick="localStorage.clear();location.href='/'">Sair da conta</button></div>
+  <div class="box"><h2>Alterar senha</h2><input id="op" type="password" placeholder="Senha atual" autocomplete="current-password"><input id="np" type="password" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password"><button onclick="chpass()">Alterar senha</button></div>
   <div class="box"><h2>Regras</h2><p>Cada jogador começa com 2 moedas e 2 cartas. Na sua vez, faça uma ação. Ações de personagem podem ser blefe e qualquer um pode duvidar. Quem perde a dúvida perde uma carta. Quem fica sem cartas está fora, e vence o último de pé.</p>
   <p><b>Renda</b> +1. <b>Ajuda externa</b> +2 (Duque bloqueia). <b>Golpe</b> paga 7 e o alvo perde uma carta (obrigatório com 10 moedas). <b>Duque</b> taxa +3. <b>Assassino</b> paga 3 e mata uma carta (Condessa bloqueia). <b>Capitão</b> extorque 2 moedas (Capitão ou Embaixador bloqueiam). <b>Embaixador</b> troca cartas.</p>
   <p>O baralho cresce com o número de jogadores: 4 jogadores usam 15 cartas (3 de cada).</p></div>`),
