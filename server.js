@@ -3,23 +3,42 @@ const { SK, MS } = require('./public/shared.js');
 const app = express(); app.use(express.static(__dirname + '/public'));
 const srv = http.createServer(app), io = new Server(srv);
 
-/* ---------- Banco simples em arquivo (ver aviso sobre persistência no Render) ---------- */
+/* ---------- Banco: Supabase (se configurado) ou arquivo local ---------- */
+const SBURL = (process.env.SUPABASE_URL || '').replace(/\/$/, ''), SBKEY = process.env.SUPABASE_KEY || '';
+const sbh = { apikey: SBKEY, Authorization: 'Bearer ' + SBKEY, 'Content-Type': 'application/json' };
 const FILE = process.env.DATA_FILE || __dirname + '/data.json';
+const OWNER = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
 let db = { users: {}, emails: {}, codes: {}, sessions: {} };
-try { db = JSON.parse(fs.readFileSync(FILE)); } catch (e) {}
-let sv; const save = () => { clearTimeout(sv); sv = setTimeout(() => fs.writeFile(FILE, JSON.stringify(db), () => {}), 500); };
+
+async function load() {
+  if (SBURL) {
+    const r = await fetch(`${SBURL}/rest/v1/kv?key=eq.db&select=value`, { headers: sbh });
+    if (!r.ok) throw new Error('Supabase ' + r.status + ': ' + await r.text()); // não sobe vazio para não apagar dados
+    const j = await r.json(); if (j[0]) db = j[0].value;
+  } else { try { db = JSON.parse(fs.readFileSync(FILE)); } catch (e) {} }
+}
+async function persist() {
+  if (SBURL) {
+    const r = await fetch(`${SBURL}/rest/v1/kv`, { method: 'POST', headers: { ...sbh, Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ key: 'db', value: db }) });
+    if (!r.ok) console.error('Supabase erro', r.status, await r.text());
+  } else fs.writeFileSync(FILE, JSON.stringify(db));
+}
+let sv; const save = () => { clearTimeout(sv); sv = setTimeout(() => persist().catch(e => console.error(e)), 800); };
+process.on('SIGTERM', async () => { clearTimeout(sv); try { await persist(); } catch (e) {} process.exit(0); });
+
 const online = {}, CODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const avOf = u => { const k = u.skin && SK.find(x => x.id === u.skin); return k ? k.a : u.avatar; };
+const isOwner = u => !!OWNER && u.email === OWNER;
+const owned = (u, k) => isOwner(u) || (!k.owner && (!k.c || u.skins.includes(k.id)));
+const avOf = u => { const k = u.skin && SK.find(x => x.id === u.skin); return k && owned(u, k) ? k.a : u.avatar; };
 const profile = u => ({
-  id: u.id, email: u.email, name: u.name, code: u.code, pts: u.pts, stats: u.stats, claimed: u.claimed,
-  skins: u.skins, avatar: u.avatar, skin: u.skin,
+  id: u.id, email: u.email, name: u.name, code: u.code, pts: u.pts, stats: u.stats, claimed: u.claimed, owner: isOwner(u),
+  skins: isOwner(u) ? SK.map(k => k.id) : u.skins, avatar: u.avatar, skin: u.skin,
   friends: u.friends.map(c => db.users[db.codes[c]]).filter(Boolean).map(f => ({ code: f.code, name: f.name, av: avOf(f), on: !!online[f.id] }))
 });
 const hash = (p, s) => crypto.scryptSync(p, s, 32).toString('hex');
 const sess = u => { const t = crypto.randomBytes(24).toString('hex'); db.sessions[t] = u.id; save(); return t; };
 function login(s, u, tk) { s.data.u = u; online[u.id] = s.id; return { token: tk || sess(u), me: profile(u) }; }
 
-// Retorna null se o e-mail não estiver configurado (conta é confirmada na hora)
 async function mail(to, link) {
   if (!process.env.BREVO_KEY) return null;
   try {
@@ -51,7 +70,7 @@ async function api(s, m) {
     const id = crypto.randomBytes(8).toString('hex'), salt = crypto.randomBytes(8).toString('hex');
     let code; do { code = Array.from({ length: 6 }, () => CODE[Math.floor(Math.random() * CODE.length)]).join(''); } while (db.codes[code]);
     const nu = { id, email, name, salt, hash: hash(pass, salt), ok: false, vt: crypto.randomBytes(16).toString('hex'), code, friends: [], pts: 0,
-      stats: { games: 0, wins: 0, chal: 0 }, claimed: [], skins: [], skin: null, avatar: { h: 1, hc: '#3b2a1a', oc: '#2574a9', skin: '#f1c27d' } };
+      stats: { games: 0, wins: 0, chal: 0 }, claimed: [], skins: [], skin: null, avatar: { h: 1, hc: '#3b2a1a', oc: '#2574a9', skin: '#f5cfa7', e: '#4a6a8a', b: 0, cl: 0, x: '' } };
     const sent = await mail(email, `${process.env.BASE_URL || s.handshake.headers.origin || ''}/verify?t=${nu.vt}`);
     if (sent === false) throw new Error('Não consegui enviar o e-mail. Confira o endereço e tente de novo.');
     db.users[id] = nu; db.emails[email] = id; db.codes[code] = id;
@@ -75,15 +94,16 @@ async function api(s, m) {
       if (!u.friends.includes(f.code)) { u.friends.push(f.code); f.friends.push(u.code); } break;
     }
     case 'avatar': {
-      const a = m.a || {}, ok = c => /^#[0-9a-f]{6}$/i.test(c);
-      u.avatar = { h: [0, 1, 2, 3].includes(a.h) ? a.h : 1, hc: ok(a.hc) ? a.hc : '#3b2a1a', oc: ok(a.oc) ? a.oc : '#2574a9', skin: ok(a.skin) ? a.skin : '#f1c27d' };
+      const a = m.a || {}, hex = c => /^#[0-9a-f]{6}$/i.test(c), I = (v, n, d) => Number.isInteger(v) && v >= 0 && v < n ? v : d;
+      u.avatar = { h: I(a.h, 6, 1), b: I(a.b, 4, 0), cl: I(a.cl, 4, 0), hc: hex(a.hc) ? a.hc : '#3b2a1a', oc: hex(a.oc) ? a.oc : '#2574a9',
+        skin: hex(a.skin) ? a.skin : '#f5cfa7', e: hex(a.e) ? a.e : '#4a6a8a', x: ['', 'glasses', 'monocle', 'tophat', 'cap', 'shades'].includes(a.x) ? a.x : '' };
       u.skin = null; break;
     }
     case 'skin': {
-      if (m.id) { const k = SK.find(x => x.id === m.id); if (!k || (k.c && !u.skins.includes(k.id))) throw new Error('Skin bloqueada.'); }
+      if (m.id) { const k = SK.find(x => x.id === m.id); if (!k || !owned(u, k)) throw new Error('Skin bloqueada.'); }
       u.skin = m.id || null; break;
     }
-    case 'buy': { const k = SK.find(x => x.id === m.id); if (!k || u.skins.includes(k.id) || u.pts < k.c) throw new Error('Pontos insuficientes.'); u.pts -= k.c; u.skins.push(k.id); break; }
+    case 'buy': { const k = SK.find(x => x.id === m.id); if (!k || k.owner || u.skins.includes(k.id) || u.pts < k.c) throw new Error('Pontos insuficientes.'); u.pts -= k.c; u.skins.push(k.id); break; }
     case 'claim': { const k = MS.find(x => x.id === m.id); if (!k || u.claimed.includes(k.id) || u.stats[k.k] < k.n) throw new Error('Missão incompleta.'); u.claimed.push(k.id); u.pts += k.p; break; }
     case 'invite': {
       const f = db.users[db.codes[m.code]];
@@ -98,10 +118,15 @@ async function api(s, m) {
 /* ---------- Jogo ---------- */
 const CH = ['duke', 'assassin', 'captain', 'ambassador', 'contessa'];
 const N = { duke: 'Duque', assassin: 'Assassino', captain: 'Capitão', ambassador: 'Embaixador', contessa: 'Condessa' };
+const AR = { duke: 'o Duque', assassin: 'o Assassino', captain: 'o Capitão', ambassador: 'o Embaixador', contessa: 'a Condessa' };
 const CAP = {
   income: a => `${a} pegou renda`, aid: a => `${a} pediu ajuda externa`, coup: (a, t) => `${a} deu um golpe em ${t}`,
   tax: a => `${a} cobrou impostos (Duque)`, assassinate: (a, t) => `${a} tentou assassinar ${t}`,
   steal: (a, t) => `${a} extorquiu ${t}`, exchange: a => `${a} trocou cartas (Embaixador)`
+};
+const SAY = {
+  income: () => 'Vou pegar a renda.', aid: () => 'Quero a ajuda externa.', coup: t => `Vou dar um golpe em ${t}!`,
+  tax: () => 'Vou cobrar impostos!', assassinate: t => `Vou assassinar ${t}!`, steal: t => `Vou extorquir ${t}!`, exchange: () => 'Vou trocar cartas.'
 };
 const ACT = {
   income: {}, aid: { block: ['duke'] }, coup: { cost: 7, target: 1 }, tax: { claim: 'duke' },
@@ -117,15 +142,17 @@ const P = (r, pid) => r.players.find(p => p.pid === pid);
 const live = p => p.cards.filter(c => !c.dead);
 const alive = r => r.players.filter(p => p.alive);
 const log = (r, t) => { r.log.push(t); if (r.log.length > 40) r.log.shift(); };
+// pausa o jogo por alguns segundos para dar tempo de ler o que aconteceu
+const wait = (r, ms, fn) => { r.phase = 'wait'; setTimeout(() => { fn(); send(r); }, ms); };
 
 function addBot(r) {
   const used = r.players.map(p => p.name), nm = BN.find(n => !used.includes('Bot ' + n)) || 'X';
-  r.players.push({ pid: 'bot' + Math.random().toString(36).slice(2, 7), name: 'Bot ' + nm, bot: true, av: rnd(SK).a, coins: 0, cards: [], alive: true });
+  r.players.push({ pid: 'bot' + Math.random().toString(36).slice(2, 7), name: 'Bot ' + nm, bot: true, av: rnd(SK.filter(k => !k.owner)).a, coins: 0, cards: [], alive: true });
 }
 function kill(r, p, i, next) {
   const c = p.cards[i]; c.dead = true; log(r, `${p.name} perdeu ${N[c.c]}`);
   if (!live(p).length) { p.alive = false; log(r, `${p.name} foi eliminado`); }
-  r.phase = null; next();
+  wait(r, 2200, next);
 }
 function lose(r, pid, next) {
   const p = P(r, pid);
@@ -139,14 +166,18 @@ function swap(r, p, ch) {
   r.deck.push(ch); shuffle(r.deck); p.cards[i].c = r.deck.pop();
 }
 function challenge(r, claimer, ch, challenger, won, lost) {
-  log(r, `${challenger.name} desafiou ${claimer.name} (${N[ch]})`);
-  if (live(claimer).some(c => c.c === ch)) {
-    log(r, `${claimer.name} tinha ${N[ch]}!`); swap(r, claimer, ch); lose(r, challenger.pid, won);
-  } else {
-    log(r, `${claimer.name} estava blefando`);
-    const cu = db.users[challenger.pid]; if (cu) { cu.stats.chal++; save(); }
-    lose(r, claimer.pid, lost);
-  }
+  log(r, `${challenger.name} duvidou de ${claimer.name} (${N[ch]})`);
+  r.say = { pid: challenger.pid, text: 'Duvido!' };
+  wait(r, 2000, () => {
+    const has = live(claimer).some(c => c.c === ch);
+    r.reveal = { pid: claimer.pid, c: ch, ok: has };
+    if (has) { log(r, `${claimer.name} tinha ${N[ch]}!`); swap(r, claimer, ch); }
+    else {
+      log(r, `${claimer.name} estava blefando`);
+      const cu = db.users[challenger.pid]; if (cu) { cu.stats.chal++; save(); }
+    }
+    wait(r, 4000, () => { r.reveal = null; if (has) lose(r, challenger.pid, won); else lose(r, claimer.pid, lost); });
+  });
 }
 function canBlock(r, p) { const pd = r.pending, d = ACT[pd.a]; return !pd.block && !!d.block && (pd.a === 'aid' || pd.t === p.pid); }
 function eligible(r) {
@@ -155,9 +186,12 @@ function eligible(r) {
   return alive(r).filter(p => p.pid !== pd.actor && ((d.claim && !pd.nc) || canBlock(r, p))).map(p => p.pid);
 }
 function act(r, p, a, t) {
+  const d = ACT[a];
   r.pending = { actor: p.pid, a, t: t ? t.pid : null, pass: [], block: null, nc: false };
-  p.coins -= ACT[a].cost || 0;
-  log(r, CAP[a](p.name, t && t.name)); react(r);
+  p.coins -= d.cost || 0;
+  r.say = { pid: p.pid, text: (d.claim ? `Sou ${AR[d.claim]}. ` : '') + SAY[a](t && t.name) };
+  log(r, CAP[a](p.name, t && t.name));
+  wait(r, 2800, () => react(r));
 }
 function react(r) {
   const pd = r.pending, d = ACT[pd.a];
@@ -176,7 +210,7 @@ function resolve(r) {
   switch (pd.a) {
     case 'income': p.coins += 1; break;
     case 'aid': p.coins += 2; break;
-    case 'tax': p.coins += 3; break;
+    case 'tax': p.coins += 3; log(r, `${p.name} recebeu 3 moedas`); break;
     case 'steal': if (t && t.alive) { const n = Math.min(2, t.coins); t.coins -= n; p.coins += n; log(r, `${p.name} levou ${n} moeda(s) de ${t.name}`); } break;
     case 'coup': case 'assassinate': return lose(r, t.pid, () => end(r));
     case 'exchange': {
@@ -195,11 +229,13 @@ function award(r) {
   save();
 }
 function end(r) {
-  r.pending = null; r.phase = null;
+  r.pending = null; r.say = null; r.reveal = null;
   const al = alive(r);
   if (al.length < 2) { r.phase = 'over'; r.winner = al[0].pid; log(r, `${al[0].name} venceu!`); award(r); return; }
-  do { r.turn = (r.turn + 1) % r.players.length; } while (!r.players[r.turn].alive);
-  r.phase = 'action';
+  wait(r, 1800, () => {
+    do { r.turn = (r.turn + 1) % r.players.length; } while (!r.players[r.turn].alive);
+    r.phase = 'action';
+  });
 }
 
 function apply(r, p, m) {
@@ -216,8 +252,8 @@ function apply(r, p, m) {
   if (r.phase === 'react' && pd) {
     if (!eligible(r).includes(p.pid) || pd.pass.includes(p.pid)) return false;
     if (m.t === 'pass') {
-      pd.pass.push(p.pid);
-      if (eligible(r).every(x => pd.pass.includes(x))) done(r);
+      pd.pass.push(p.pid); r.say = { pid: p.pid, text: 'Deixo passar.' };
+      if (eligible(r).every(x => pd.pass.includes(x))) wait(r, 1500, () => done(r));
       return true;
     }
     if (m.t === 'chal') {
@@ -237,7 +273,9 @@ function apply(r, p, m) {
     }
     if (m.t === 'block' && canBlock(r, p) && ACT[pd.a].block.includes(m.ch)) {
       pd.block = { by: p.pid, char: m.ch }; pd.pass = [];
-      log(r, `${p.name} bloqueia com ${N[m.ch]}`); r.phase = 'react'; return true;
+      r.say = { pid: p.pid, text: `Eu bloqueio! Sou ${AR[m.ch]}.` };
+      log(r, `${p.name} bloqueia com ${N[m.ch]}`);
+      wait(r, 2600, () => { r.phase = 'react'; }); return true;
     }
     return false;
   }
@@ -270,7 +308,7 @@ function reactChoice(r, b) {
 }
 function botTick(r) {
   r.bt = false;
-  if (!r.phase || r.phase === 'lobby' || r.phase === 'over') return;
+  if (!r.phase || r.phase === 'lobby' || r.phase === 'over' || r.phase === 'wait') return;
   let did = false;
   const pd = r.pending, cur = r.players[r.turn];
   if (r.phase === 'action' && cur.bot && cur.alive) {
@@ -298,7 +336,7 @@ function view(r, me) {
     ? { chal: pd.block ? true : !!(ACT[pd.a].claim && !pd.nc), block: canBlock(r, me) ? ACT[pd.a].block : [] } : null;
   return {
     code: r.code, host: r.host, phase: r.phase, me: me.pid, copies: r.copies, deck: r.deck.length,
-    winner: r.winner, log: r.log, turn: r.players[r.turn] && r.players[r.turn].pid,
+    winner: r.winner, log: r.log, turn: r.players[r.turn] && r.players[r.turn].pid, say: r.say || null, reveal: r.reveal || null,
     pd: pd && { actor: pd.actor, a: pd.a, t: pd.t, block: pd.block, wait: el }, can, lose: r.lose,
     xchg: r.xchg && r.xchg.pid === me.pid ? r.xchg : null,
     players: r.players.map(p => ({
@@ -310,7 +348,7 @@ function view(r, me) {
 function send(r) {
   r.t = Date.now();
   r.players.forEach(p => p.sid && io.to(p.sid).emit('state', view(r, p)));
-  if (!r.bt && r.players.some(p => p.bot)) { r.bt = true; setTimeout(() => botTick(r), 1300); }
+  if (!r.bt && r.players.some(p => p.bot)) { r.bt = true; setTimeout(() => botTick(r), 2000 + Math.random() * 1500); }
 }
 
 io.on('connection', s => {
@@ -351,14 +389,14 @@ io.on('connection', s => {
     const n = r.players.length; r.copies = copies(n);
     r.deck = shuffle(CH.flatMap(c => Array(r.copies).fill(c)));
     r.players.forEach(p => { p.coins = 2; p.alive = true; p.cards = [{ c: r.deck.pop(), dead: false }, { c: r.deck.pop(), dead: false }]; });
-    r.turn = Math.floor(Math.random() * n); r.phase = 'action'; r.winner = null; r.log = []; r.awarded = false;
+    r.turn = Math.floor(Math.random() * n); r.phase = 'action'; r.winner = null; r.log = []; r.say = null; r.reveal = null;
     log(r, `O jogo começou com ${n * 2 + r.deck.length} cartas (${r.copies} de cada)`); send(r);
   });
 
   s.on('again', () => {
     const r = R();
     if (!r || r.phase !== 'over' || r.host !== s.data.u.id) return;
-    r.phase = 'lobby'; r.log = []; r.pending = null; r.winner = null; send(r);
+    r.phase = 'lobby'; r.log = []; r.pending = null; r.winner = null; r.say = null; r.reveal = null; send(r);
   });
 
   s.on('move', m => {
@@ -369,4 +407,5 @@ io.on('connection', s => {
 });
 
 setInterval(() => { for (const k in rooms) if (Date.now() - rooms[k].t > 6 * 3600e3) delete rooms[k]; }, 600e3);
-srv.listen(process.env.PORT || 3000, () => console.log('Coup online rodando'));
+load().then(() => srv.listen(process.env.PORT || 3000, () => console.log('Coup online rodando' + (SBURL ? ' (Supabase)' : ' (arquivo local)'))))
+  .catch(e => { console.error('Falha ao carregar o banco:', e.message); process.exit(1); });
