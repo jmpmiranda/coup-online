@@ -61,8 +61,9 @@ async function mail(to, subject, html) {
       method: 'POST', headers: { 'api-key': process.env.BREVO_KEY, 'content-type': 'application/json' },
       body: JSON.stringify({ sender: { name: 'Coup Online', email: process.env.MAIL_FROM }, to: [{ email: to }], subject, htmlContent: html })
     });
+    if (!r.ok) console.error('Brevo erro', r.status, await r.text());
     return r.ok;
-  } catch (e) { return false; }
+  } catch (e) { console.error('Brevo falha', e.message); return false; }
 }
 app.get('/verify', (q, res) => {
   const u = Object.values(db.users).find(x => x.vt && x.vt === q.query.t);
@@ -566,6 +567,22 @@ io.on('connection', s => {
   });
 });
 
+// Recuperação de conta: com RESET_EMAIL e RESET_PASS definidos no Render, a senha dessa conta é redefinida ao iniciar
+function recover() {
+  const e = (process.env.RESET_EMAIL || '').trim().toLowerCase(), p = process.env.RESET_PASS || '';
+  if (!e || p.length < 6) return;
+  let x = db.users[db.emails[e]];
+  if (!x) {
+    const id = crypto.randomBytes(8).toString('hex'); let code;
+    do { code = Array.from({ length: 6 }, () => CODE[Math.floor(Math.random() * CODE.length)]).join(''); } while (db.codes[code]);
+    x = db.users[id] = { id, email: e, name: e.split('@')[0].slice(0, 14), code, skin: null, avatar: { h: 1, hc: '#3b2a1a', oc: '#2574a9', skin: '#f5cfa7', e: '#4a6a8a', b: 0, cl: 0, x: '' } };
+    db.emails[e] = id; db.codes[code] = id; norm(x);
+  }
+  x.salt = crypto.randomBytes(8).toString('hex'); x.hash = hash(p, x.salt); x.ok = true; x.vt = null; x.rc = null;
+  for (const t in db.sessions) if (db.sessions[t] === x.id) delete db.sessions[t];
+  save(); console.log('Senha redefinida para ' + e + '. Remova RESET_EMAIL e RESET_PASS do Render agora.');
+}
+
 setInterval(() => { for (const k in rooms) if (Date.now() - rooms[k].t > 6 * 3600e3) delete rooms[k]; }, 600e3);
-load().then(() => srv.listen(process.env.PORT || 3000, () => console.log('Coup online rodando' + (SBURL ? ' (Supabase)' : ' (arquivo local)'))))
+load().then(() => { recover(); srv.listen(process.env.PORT || 3000, () => console.log('Coup online rodando' + (SBURL ? ' (Supabase)' : ' (arquivo local)'))); })
   .catch(e => { console.error('Falha ao carregar o banco:', e.message); process.exit(1); });
