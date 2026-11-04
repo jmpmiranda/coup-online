@@ -8,16 +8,26 @@ const SBURL = (process.env.SUPABASE_URL || '').replace(/\/$/, ''), SBKEY = proce
 const sbh = { apikey: SBKEY, ...(SBKEY.startsWith('eyJ') ? { Authorization: 'Bearer ' + SBKEY } : {}), 'Content-Type': 'application/json' };
 const FILE = process.env.DATA_FILE || __dirname + '/data.json';
 const OWNER = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
-let db = { users: {}, emails: {}, codes: {}, sessions: {}, events: [] };
+let db = { users: {}, emails: {}, codes: {}, sessions: {}, events: [], cskins: [], cfg: {} };
 
 const day = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
 const chkDaily = u => { if (u.daily.d !== day()) u.daily = { d: day(), s: {}, cl: [] }; };
-const bump = (u, k) => { chkDaily(u); u.stats[k] = (u.stats[k] || 0) + 1; u.daily.s[k] = (u.daily.s[k] || 0) + 1; };
+const isActive = e => (!e.start || e.start <= day()) && (!e.end || day() <= e.end);
+const activeEvents = () => db.events.filter(isActive);
+const bump = (u, k, r) => {
+  chkDaily(u); u.stats[k] = (u.stats[k] || 0) + 1; u.daily.s[k] = (u.daily.s[k] || 0) + 1;
+  activeEvents().forEach(e => {
+    if (!e.goal || e.goal.k !== k) return;
+    const md = e.mode || 'normal';
+    if (!(md === 'normal' || md === 'dobro' || (r && r.mode === md))) return;
+    const q = u.ev[e.id] = u.ev[e.id] || { n: 0, c: false }; if (!q.c) q.n++;
+  });
+};
 function norm(u) {
   if (u.coins == null) u.coins = u.pts || 0; delete u.pts;
   u.gems = u.gems || 0; u.xp = u.xp || 0; u.passClaimed = u.passClaimed || []; u.items = u.items || [];
   u.stats = Object.assign({ games: 0, wins: 0, chal: 0, blk: 0, coup: 0 }, u.stats);
-  u.daily = u.daily || { d: '', s: {}, cl: [] }; u.claimed = u.claimed || []; u.skins = u.skins || []; u.friends = u.friends || [];
+  u.daily = u.daily || { d: '', s: {}, cl: [] }; u.claimed = u.claimed || []; u.skins = u.skins || []; u.friends = u.friends || []; u.ev = u.ev || {};
 }
 async function load() {
   if (SBURL) {
@@ -25,7 +35,10 @@ async function load() {
     if (!r.ok) throw new Error('Supabase ' + r.status + ': ' + await r.text()); // não sobe vazio para não apagar dados
     const j = await r.json(); if (j[0]) db = j[0].value;
   } else { try { db = JSON.parse(fs.readFileSync(FILE)); } catch (e) {} }
-  db.events = db.events || []; Object.values(db.users).forEach(norm);
+  db.events = db.events || []; db.cskins = db.cskins || []; db.cfg = db.cfg || {};
+  db.cfg.sk = db.cfg.sk || {}; db.cfg.em = db.cfg.em || {}; db.cfg.img = db.cfg.img || {};
+  db.cfg.rules = Object.assign({ minPlayers: 3, blockFail: false }, db.cfg.rules);
+  Object.values(db.users).forEach(norm); await imgLoad();
 }
 async function persist() {
   if (SBURL) {
@@ -39,13 +52,13 @@ process.on('SIGTERM', async () => { clearTimeout(sv); try { await persist(); } c
 const online = {}, CODE = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const isOwner = u => !!OWNER && u.email === OWNER;
 const owned = (u, k) => isOwner(u) || (!k.owner && (!k.c || u.skins.includes(k.id)));
-const avOf = u => { const k = u.skin && SK.find(x => x.id === u.skin); return k && owned(u, k) ? k.a : u.avatar; };
+const avOf = u => { const k = u.skin && skins().find(x => x.id === u.skin); return k && owned(u, k) ? k.a : u.avatar; };
 const profile = u => {
   chkDaily(u);
   return {
     id: u.id, email: u.email, name: u.name, code: u.code, coins: u.coins, gems: u.gems, xp: u.xp, passClaimed: u.passClaimed,
     items: isOwner(u) ? EM.map(e => e.id) : u.items, stats: u.stats, claimed: u.claimed, daily: u.daily, owner: isOwner(u),
-    skins: isOwner(u) ? SK.map(k => k.id) : u.skins, avatar: u.avatar, skin: u.skin, events: db.events,
+    skins: isOwner(u) ? skins().map(k => k.id) : u.skins, avatar: u.avatar, skin: u.skin, events: db.events.map(e => ({ ...e, active: isActive(e), my: u.ev[e.id] || { n: 0, c: false } })), cat: { skins: skins().filter(k => !k.owner || isOwner(u)), em: emotes() }, rules: isOwner(u) ? db.cfg.rules : null,
     friends: u.friends.map(c => db.users[db.codes[c]]).filter(Boolean).map(f => ({ code: f.code, name: f.name, av: avOf(f), on: !!online[f.id] }))
   };
 };
@@ -71,6 +84,45 @@ app.get('/verify', (q, res) => {
   u.ok = true; u.vt = null; save(); res.redirect('/?ok=1');
 });
 
+/* ---------- Catálogo editável (personagens, preços) e imagens ---------- */
+function skins() {
+  return SK.map(k => ({ ...k })).concat(db.cskins.map(k => ({ ...k, custom: true }))).map(k => {
+    const o = db.cfg.sk[k.id] || {}, iv = db.cfg.img[k.id];
+    return { ...k, c: o.c != null ? o.c : k.c, hide: !!o.hide, noRaffle: !!o.noRaffle, a: iv ? { img: `/img/${k.id}?v=${iv}` } : k.a };
+  });
+}
+function emotes() { return EM.map(e => ({ ...e, c: db.cfg.em[e.id] && db.cfg.em[e.id].c != null ? db.cfg.em[e.id].c : e.c })); }
+const adm = u => { if (!isOwner(u)) throw new Error('Só o dono do app pode fazer isso.'); };
+const IMGS = {}, IMGFILE = FILE.replace(/\.json$/, '') + '-imgs.json';
+async function imgLoad() {
+  if (SBURL) {
+    const r = await fetch(`${SBURL}/rest/v1/kv?key=like.img:*&select=key,value`, { headers: sbh });
+    if (!r.ok) throw new Error('Supabase imagens ' + r.status);
+    for (const x of await r.json()) IMGS[x.key.slice(4)] = x.value;
+  } else { try { Object.assign(IMGS, JSON.parse(fs.readFileSync(IMGFILE))); } catch (e) {} }
+}
+async function imgPut(id, v) {
+  IMGS[id] = v;
+  if (SBURL) {
+    const r = await fetch(`${SBURL}/rest/v1/kv`, { method: 'POST', headers: { ...sbh, Prefer: 'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ key: 'img:' + id, value: v }) });
+    if (!r.ok) throw new Error('Não consegui salvar a imagem (' + r.status + ').');
+  } else fs.writeFileSync(IMGFILE, JSON.stringify(IMGS));
+}
+async function imgDel(id) {
+  delete IMGS[id];
+  if (SBURL) await fetch(`${SBURL}/rest/v1/kv?key=eq.img:${id}`, { method: 'DELETE', headers: sbh }).catch(() => {});
+  else fs.writeFileSync(IMGFILE, JSON.stringify(IMGS));
+}
+function imgOk(d) {
+  const mm = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/.exec(String(d || ''));
+  if (!mm || mm[2].length > 450000) throw new Error('Imagem inválida ou grande demais (máximo de uns 300 KB).');
+  return { t: mm[1], b: mm[2] };
+}
+app.get('/img/:id', (q, res) => {
+  const v = IMGS[q.params.id]; if (!v) return res.status(404).end();
+  res.set('Content-Type', v.t); res.set('Cache-Control', 'public, max-age=31536000, immutable'); res.send(Buffer.from(v.b, 'base64'));
+});
+
 /* ---------- Sorteio do passe ---------- */
 const RAF = {
   1: [{ w: 35, g: 3 }, { w: 25, c: 100 }, { w: 15, g: 8 }, { w: 12, r: 'raro' }, { w: 8.5, r: 'épico' }, { w: 3.5, r: 'lendário' }, { w: 1, r: 'mítico' }],
@@ -82,7 +134,7 @@ function raffle(u, tier) {
   for (const e of L) { if ((x -= e.w) < 0) { o = e; break; } }
   if (o.g) { u.gems += o.g; return `Sorteio: você ganhou ${o.g} gemas!`; }
   if (o.c) { u.coins += o.c; return `Sorteio: você ganhou ${o.c} moedas!`; }
-  const pool = SK.filter(k => k.r === o.r && !k.owner && !u.skins.includes(k.id));
+  const pool = skins().filter(k => k.r === o.r && !k.owner && !k.noRaffle && !u.skins.includes(k.id));
   if (!pool.length) { u.gems += DUP[o.r]; return `Sorteio: personagem ${o.r} repetido, virou ${DUP[o.r]} gemas.`; }
   const k = pool[Math.floor(Math.random() * pool.length)]; u.skins.push(k.id);
   return `Sorteio: você ganhou o personagem ${k.n} (${k.r})!`;
@@ -153,13 +205,13 @@ async function api(s, m) {
       u.skin = null; break;
     }
     case 'skin': {
-      if (m.id) { const k = SK.find(x => x.id === m.id); if (!k || !owned(u, k)) throw new Error('Personagem bloqueado.'); }
+      if (m.id) { const k = skins().find(x => x.id === m.id); if (!k || !owned(u, k)) throw new Error('Personagem bloqueado.'); }
       u.skin = m.id || null; break;
     }
     case 'buy': {
-      const k = SK.find(x => x.id === m.id);
-      if (k) { if (k.owner || u.skins.includes(k.id) || u.gems < k.c) throw new Error('Gemas insuficientes.'); u.gems -= k.c; u.skins.push(k.id); break; }
-      const e = EM.find(x => x.id === m.id);
+      const k = skins().find(x => x.id === m.id);
+      if (k) { if (k.owner || k.hide || u.skins.includes(k.id) || u.gems < k.c) throw new Error('Gemas insuficientes.'); u.gems -= k.c; u.skins.push(k.id); break; }
+      const e = emotes().find(x => x.id === m.id);
       if (!e || u.items.includes(e.id) || u.coins < e.c) throw new Error('Moedas insuficientes.');
       u.coins -= e.c; u.items.push(e.id); break;
     }
@@ -186,12 +238,60 @@ async function api(s, m) {
       save(); return login(s, u);
     }
     case 'evadd': {
-      if (!isOwner(u)) throw new Error('Só o dono do app pode criar eventos.');
+      adm(u);
       const t = String(m.title || '').trim().slice(0, 60), x = String(m.text || '').trim().slice(0, 400);
       if (!t) throw new Error('Digite um título.');
-      db.events.unshift({ id: crypto.randomBytes(4).toString('hex'), title: t, text: x, at: day() }); db.events = db.events.slice(0, 20); break;
+      const mode = ['normal', 'duelo', 'mesa_cheia', 'dobro'].includes(m.mode) ? m.mode : 'normal';
+      const goal = ['wins', 'games', 'chal', 'blk', 'coup'].includes(m.goalK) ? { k: m.goalK, n: Math.max(1, Math.min(1000, m.goalN | 0 || 1)) } : null;
+      const dt = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : '', num = v => Math.max(0, Math.min(100000, v | 0));
+      const prize = { coins: num(m.coins), gems: num(m.gems), xp: num(m.xp), skin: skins().some(k => k.id === m.skin && !k.owner) ? m.skin : '' };
+      db.events.unshift({ id: crypto.randomBytes(4).toString('hex'), title: t, text: x, mode, goal, start: dt(m.start), end: dt(m.end), prize, at: day() });
+      db.events = db.events.slice(0, 30); break;
     }
-    case 'evdel': { if (!isOwner(u)) throw new Error('Sem permissão.'); db.events = db.events.filter(e => e.id !== m.id); break; }
+    case 'evdel': { adm(u); db.events = db.events.filter(e => e.id !== m.id); break; }
+    case 'evclaim': {
+      const e = db.events.find(x => x.id === m.id);
+      if (!e || !e.goal) throw new Error('Evento não encontrado.');
+      const q = u.ev[e.id] || (u.ev[e.id] = { n: 0, c: false });
+      if (q.c) throw new Error('Prêmio já resgatado.');
+      if (q.n < e.goal.n) throw new Error('Meta ainda não concluída.');
+      q.c = true; const p = e.prize || {};
+      u.coins += p.coins | 0; u.gems += p.gems | 0; u.xp += p.xp | 0;
+      const k = p.skin && skins().find(x => x.id === p.skin);
+      if (k && !k.owner && !u.skins.includes(k.id)) u.skins.push(k.id);
+      save(); return { me: profile(u), got: 'Prêmio do evento resgatado!' };
+    }
+    case 'adm_skin': {
+      adm(u); const k = skins().find(x => x.id === m.id); if (!k) throw new Error('Personagem não encontrado.');
+      const o = db.cfg.sk[k.id] = db.cfg.sk[k.id] || {};
+      if (m.c != null) o.c = Math.max(0, Math.min(100000, m.c | 0));
+      o.hide = !!m.hide; o.noRaffle = !!m.noRaffle; break;
+    }
+    case 'adm_em': {
+      adm(u); const e = EM.find(x => x.id === m.id); if (!e) throw new Error('Item não encontrado.');
+      db.cfg.em[e.id] = { c: Math.max(0, Math.min(100000, m.c | 0)) }; break;
+    }
+    case 'adm_rules': {
+      adm(u); db.cfg.rules = { minPlayers: Math.max(2, Math.min(6, (m.minPlayers | 0) || 3)), blockFail: !!m.blockFail }; break;
+    }
+    case 'adm_addskin': {
+      adm(u);
+      const n = String(m.n || '').trim().slice(0, 24); if (!n) throw new Error('Digite o nome do personagem.');
+      const v = imgOk(m.img), id = 'c' + crypto.randomBytes(4).toString('hex');
+      const r = m.owner ? 'exclusivo' : (['comum', 'raro', 'épico', 'lendário', 'mítico'].includes(m.r) ? m.r : 'raro');
+      await imgPut(id, v);
+      db.cskins.push({ id, n, r, c: m.owner ? 0 : Math.max(0, Math.min(100000, m.c | 0)), owner: !!m.owner });
+      db.cfg.img[id] = Date.now(); if (m.noRaffle) db.cfg.sk[id] = { noRaffle: true }; break;
+    }
+    case 'adm_img': {
+      adm(u); const k = skins().find(x => x.id === m.id); if (!k) throw new Error('Personagem não encontrado.');
+      await imgPut(k.id, imgOk(m.img)); db.cfg.img[k.id] = Date.now(); break;
+    }
+    case 'adm_delskin': {
+      adm(u); const i = db.cskins.findIndex(x => x.id === m.id);
+      if (i < 0) throw new Error('Só dá para apagar personagens que você criou.');
+      db.cskins.splice(i, 1); delete db.cfg.sk[m.id]; delete db.cfg.img[m.id]; await imgDel(m.id); break;
+    }
     case 'invite': {
       const f = db.users[db.codes[m.code]];
       if (f && u.friends.includes(f.code) && online[f.id]) io.to(online[f.id]).emit('invite', { from: u.name, room: String(m.room || '') });
@@ -222,6 +322,8 @@ const ACT = {
 };
 const BN = ['Ana', 'Beto', 'Cacá', 'Duda', 'Edu', 'Fê', 'Gui', 'Lia', 'Nando'];
 const rooms = {};
+const minP = r => r.mode === 'duelo' ? 2 : r.mode === 'mesa_cheia' ? 6 : Math.max(2, db.cfg.rules.minPlayers | 0 || 3);
+const maxP = r => r.mode === 'duelo' ? 2 : 10;
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const copies = n => Math.round((2 * n + 7) / 5);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -234,7 +336,7 @@ const wait = (r, ms, fn) => { r.phase = 'wait'; setTimeout(() => { fn(); send(r)
 
 function addBot(r) {
   const used = r.players.map(p => p.name), nm = BN.find(n => !used.includes('Bot ' + n)) || 'X';
-  r.players.push({ pid: 'bot' + Math.random().toString(36).slice(2, 7), name: 'Bot ' + nm, bot: true, lv: r.lv || 'medio', av: rnd(SK.filter(k => !k.owner)).a, coins: 0, cards: [], alive: true });
+  r.players.push({ pid: 'bot' + Math.random().toString(36).slice(2, 7), name: 'Bot ' + nm, bot: true, lv: r.lv || 'medio', av: rnd(skins().filter(k => !k.owner && ['comum', 'raro'].includes(k.r))).a, coins: 0, cards: [], alive: true });
 }
 function kill(r, p, i, next) {
   const c = p.cards[i]; c.dead = true; log(r, `${p.name} perdeu ${N[c.c]}`);
@@ -261,7 +363,7 @@ function challenge(r, claimer, ch, challenger, won, lost) {
     if (has) { log(r, `${claimer.name} tinha ${N[ch]}!`); swap(r, claimer, ch); }
     else {
       log(r, `${claimer.name} estava blefando`);
-      const cu = db.users[challenger.pid]; if (cu) { bump(cu, 'chal'); save(); }
+      const cu = db.users[challenger.pid]; if (cu) { bump(cu, 'chal', r); save(); }
     }
     wait(r, 4000, () => { r.reveal = null; if (has) lose(r, challenger.pid, won); else lose(r, claimer.pid, lost); });
   });
@@ -276,7 +378,7 @@ function act(r, p, a, t) {
   const d = ACT[a];
   r.pending = { actor: p.pid, a, t: t ? t.pid : null, pass: [], block: null, nc: false };
   p.coins -= d.cost || 0;
-  if (a === 'coup') { const cu = db.users[p.pid]; if (cu) { bump(cu, 'coup'); save(); } }
+  if (a === 'coup') { const cu = db.users[p.pid]; if (cu) { bump(cu, 'coup', r); save(); } }
   r.say = { pid: p.pid, text: (d.claim ? `Sou ${AR[d.claim]}. ` : '') + SAY[a](t && t.name) };
   log(r, CAP[a](p.name, t && t.name));
   wait(r, 2800, () => react(r));
@@ -311,8 +413,9 @@ function resolve(r) {
 function award(r) {
   r.players.forEach(p => {
     const u = db.users[p.pid]; if (!u) return;
-    bump(u, 'games'); u.coins += 10;
-    if (p.pid === r.winner) { bump(u, 'wins'); u.coins += 30; }
+    const mult = activeEvents().some(e => e.mode === 'dobro') ? 2 : 1;
+    bump(u, 'games', r); u.coins += 10 * mult;
+    if (p.pid === r.winner) { bump(u, 'wins', r); u.coins += 30 * mult; }
   });
   save();
 }
@@ -347,7 +450,7 @@ function apply(r, p, m) {
     if (m.t === 'chal') {
       if (pd.block) {
         const b = P(r, pd.block.by);
-        challenge(r, b, pd.block.char, p, () => end(r), () => { pd.block = null; pd.nc = true; resolve(r); });
+        challenge(r, b, pd.block.char, p, () => end(r), () => { pd.block = null; pd.nc = true; if (db.cfg.rules.blockFail) end(r); else resolve(r); });
         return true;
       }
       if (ACT[pd.a].claim && !pd.nc) {
@@ -362,7 +465,7 @@ function apply(r, p, m) {
     if (m.t === 'block' && canBlock(r, p) && ACT[pd.a].block.includes(m.ch)) {
       pd.block = { by: p.pid, char: m.ch };
       pd.pass = [];
-      const bu = db.users[p.pid]; if (bu) { bump(bu, 'blk'); save(); }
+      const bu = db.users[p.pid]; if (bu) { bump(bu, 'blk', r); save(); }
       r.say = { pid: p.pid, text: `Eu bloqueio! Sou ${AR[m.ch]}.` };
       log(r, `${p.name} bloqueia com ${N[m.ch]}`);
       wait(r, 2600, () => { r.phase = 'react'; }); return true;
@@ -482,7 +585,7 @@ function view(r, me) {
   const can = r.phase === 'react' && el.includes(me.pid)
     ? { chal: pd.block ? true : !!(ACT[pd.a].claim && !pd.nc), block: canBlock(r, me) ? ACT[pd.a].block : [] } : null;
   return {
-    code: r.code, host: r.host, phase: r.phase, me: me.pid, copies: r.copies, deck: r.deck.length, lv: r.lv || 'medio',
+    code: r.code, host: r.host, phase: r.phase, mode: r.mode || 'normal', min: minP(r), me: me.pid, copies: r.copies, deck: r.deck.length, lv: r.lv || 'medio',
     winner: r.winner, log: r.log, turn: r.players[r.turn] && r.players[r.turn].pid, say: r.say || null, reveal: r.reveal || null, fx: r.fx || null,
     pd: pd && { actor: pd.actor, a: pd.a, t: pd.t, block: pd.block, wait: el }, can, lose: r.lose,
     xchg: r.xchg && r.xchg.pid === me.pid ? r.xchg : null,
@@ -504,29 +607,29 @@ io.on('connection', s => {
   s.on('api', async (m, cb) => { try { cb(await api(s, m || {})); } catch (e) { cb({ err: e.message }); } });
   s.on('disconnect', () => { const u = s.data.u; if (u && online[u.id] === s.id) delete online[u.id]; });
 
-  s.on('join', ({ code, create, bots, lv, friends } = {}) => {
+  s.on('join', ({ code, create, bots, lv, friends, mode } = {}) => {
     const u = s.data.u; if (!u) return;
     let r;
     if (create) {
       do { code = Math.random().toString(36).slice(2, 6).toUpperCase(); } while (rooms[code]);
-      r = rooms[code] = { code, players: [], host: u.id, phase: 'lobby', log: [], deck: [], t: Date.now(), lv: ['facil', 'medio', 'dificil'].includes(lv) ? lv : 'medio' };
+      r = rooms[code] = { code, players: [], host: u.id, phase: 'lobby', log: [], deck: [], t: Date.now(), lv: ['facil', 'medio', 'dificil'].includes(lv) ? lv : 'medio', mode: ['duelo', 'mesa_cheia'].includes(mode) && activeEvents().some(e => e.mode === mode) ? mode : 'normal' };
       if (friends) u.friends.forEach(c => { const f = db.users[db.codes[c]]; if (f && online[f.id]) io.to(online[f.id]).emit('invite', { from: u.name, room: code }); });
     } else { code = String(code || '').trim().toUpperCase(); r = rooms[code]; }
     if (!r) return s.emit('err', 'Sala não encontrada.');
     let p = P(r, u.id);
     if (!p) {
       if (r.phase !== 'lobby') return s.emit('err', 'O jogo dessa sala já começou.');
-      if (r.players.length >= 10) return s.emit('err', 'Sala cheia (máximo de 10).');
+      if (r.players.length >= maxP(r)) return s.emit('err', 'Sala cheia.');
       p = { pid: u.id, coins: 0, cards: [], alive: true }; r.players.push(p);
     }
     p.name = u.name; p.av = avOf(u); p.sid = s.id; s.data.code = code;
-    if (create) for (let i = 0; i < Math.min(bots | 0, 5); i++) addBot(r);
+    if (create) for (let i = 0; i < Math.min(bots | 0, 5, maxP(r) - 1); i++) addBot(r);
     send(r);
   });
 
   s.on('bot', d => {
     const r = R(); if (!r || r.phase !== 'lobby' || r.host !== s.data.u.id) return;
-    if (d > 0 && r.players.length < 10) addBot(r);
+    if (d > 0 && r.players.length < maxP(r)) addBot(r);
     if (d < 0) { const i = r.players.map(p => !!p.bot).lastIndexOf(true); if (i >= 0) r.players.splice(i, 1); }
     send(r);
   });
@@ -538,7 +641,7 @@ io.on('connection', s => {
 
   s.on('start', () => {
     const r = R();
-    if (!r || r.phase !== 'lobby' || r.host !== s.data.u.id || r.players.length < 2) return;
+    if (!r || r.phase !== 'lobby' || r.host !== s.data.u.id || r.players.length < minP(r)) return;
     const n = r.players.length; r.copies = copies(n);
     r.deck = shuffle(CH.flatMap(c => Array(r.copies).fill(c)));
     r.players.forEach(p => { p.coins = 2; p.alive = true; p.cards = [{ c: r.deck.pop(), dead: false }, { c: r.deck.pop(), dead: false }]; });
@@ -554,7 +657,7 @@ io.on('connection', s => {
 
   s.on('emote', ({ id } = {}) => {
     const r = R(), u = s.data.u; if (!r || !u || r.phase === 'lobby') return;
-    const p = P(r, u.id), e = EM.find(x => x.id === id);
+    const p = P(r, u.id), e = emotes().find(x => x.id === id);
     if (!p || !e || !(e.c === 0 || isOwner(u) || u.items.includes(e.id))) return;
     if (Date.now() - (p.fxt || 0) < 2500) return; p.fxt = Date.now();
     r.fxk = (r.fxk || 0) + 1; r.fx = { pid: p.pid, id: e.id, k: r.fxk }; send(r);
