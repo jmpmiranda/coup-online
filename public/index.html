@@ -65,6 +65,9 @@ button.big{font-size:1.4rem;padding:14px 26px;width:100%;margin:6px 0 0}
 @keyframes bn{50%{transform:translateY(-12px)}}@keyframes sk{25%{transform:translateX(-4px) rotate(-6deg)}75%{transform:translateX(4px) rotate(6deg)}}@keyframes sp{to{transform:rotate(360deg)}}@keyframes dn{25%{transform:rotate(-12deg) translateY(-6px)}75%{transform:rotate(12deg) translateY(-6px)}}
 .g-bounce svg{animation:bn .5s 6}.g-shake svg{animation:sk .25s 12}.g-spin svg{animation:sp .8s 3}.g-dance svg{animation:dn .45s 7}
 @media(prefers-reduced-motion:reduce){.who svg{animation:none!important}}
+select{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px;background:#0d2623;color:var(--ink);width:100%;margin:4px 0}
+.pimg{object-fit:cover;object-position:top;border-radius:14%;display:block}
+.g-bounce img{animation:bn .5s 6}.g-shake img{animation:sk .25s 12}.g-spin img{animation:sp .8s 3}.g-dance img{animation:dn .45s 7}
 </style></head>
 <body><div id="app"></div>
 <script src="/socket.io/socket.io.js"></script>
@@ -78,7 +81,8 @@ const OPT={h:['Careca','Curto','Longo','Coque','Cacheado','Topete'],b:['Sem barb
 const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 let me=null,st=null,err='',msg=location.search.includes('ok=1')?'E-mail confirmado! Entre com seu e-mail e senha.':'',mode='in',tgt=null,sel=[],inv=null,scr='home',pm='online',bl='medio',emailKeep='',fxOn=null,fxT=0,lastK=0;
 const api=m=>new Promise(r=>s.emit('api',m,r));
-const eff=u=>{const k=u.skin&&SK.find(x=>x.id===u.skin);return k?k.a:u.avatar};
+const CAT=()=>(me&&me.cat)||{skins:SK,em:EM},SKS=()=>CAT().skins,EMS=()=>CAT().em;
+const eff=u=>{const k=u.skin&&SKS().find(x=>x.id===u.skin);return k?k.a:u.avatar};
 const refresh=async()=>{const r=await api({t:'me'});if(r.me)me=r.me};
 
 /* ---------- Personagens ---------- */
@@ -129,7 +133,7 @@ SP.ninja=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M4 1
 SP.mago=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M4 100c3-24 20-32 46-32s43 8 46 32z" fill="#2f3590"/><path d="M40 70l10 30 10-30" fill="none" stroke="#d4a94f" stroke-width="2"/>${HEAD('#f0cfae','#6f8397','#dcdcdc')}<path d="M33 50q17 46 34 0q-6 9-17 10t-17-10z" fill="#ececec"/><path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="#f6f6f6"/><ellipse cx="50" cy="30" rx="29" ry="6" fill="#262b78"/><path d="M33 29Q45 10 56 0Q58 15 68 29z" fill="#2f3590"/><circle cx="50" cy="18" r="1.600" fill="#f1c40f"/><circle cx="58" cy="24" r="1.200" fill="#f1c40f"/><circle cx="44" cy="25" r="1.200" fill="#f1c40f"/></svg>`;
 SP.vampiro=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M2 100c2-34 12-48 24-56l10 26 14 8 14-8 10-26c12 8 22 22 24 56z" fill="#1a0f14"/><path d="M36 70l14 8 14-8-3 14-11 6-11-6z" fill="#7a1220"/>${HEAD('#e6dde8','#c0392b','#15101a')}<path d="M33 40c-1-12 6-17 17-17s18 5 17 17c-3-6-7-9-11-8l-6 5-6-5c-4-1-8 2-11 8z" fill="#15101a"/><path d="M45 60l1.500 5 1.500-5zM52 60l1.500 5 1.500-5z" fill="#fff"/><path d="M44 60q6 3 12 0" stroke="#7a1220" stroke-width="1.400" fill="none"/></svg>`;
 function av(a,z=48){
- a=a||{};if(a.sp)return SP[a.sp](z);
+ a=a||{};if(a.img)return `<img class="pimg" src="${esc(a.img)}" width="${z}" height="${z}" alt="">`;if(a.sp)return SP[a.sp](z);
  const sk=a.skin||'#f5cfa7',hc=a.hc||'#3b2a1a',oc=a.oc||'#2574a9',ec=a.e||'#4a6a8a',h=a.h==null?1:a.h,b=a.b||0,cl=a.cl||0,x=a.x||'';
  const dk=shade(sk,-.2),lt=shade(sk,.25),hd=shade(hc,-.35),hl=shade(hc,.3),id='g'+sk.slice(1);
  const sh='<path d="M8 100c2-22 18-30 42-30s40 8 42 30z" fill="';
@@ -218,7 +222,7 @@ function authView(){
 function hubView(){
  const L=lvl(),mod=[['online','Online'],['amigos','Amigos'],['bots','Bots']],bls=[['facil','Fácil'],['medio','Médio'],['dificil','Difícil']];
  return (inv?`<div class="box">${esc(inv.from)} convidou você para a sala ${esc(inv.room)}. <button onclick="enter('${esc(inv.room)}')">Entrar</button></div>`:'')+`<div class="hub">
- <div class="hb-top"><button class="alt" onclick="go('cfg')">≡ Configurações</button>${cur()}<button class="alt" onclick="go('shop')">Loja</button></div>
+ <div class="hb-top"><button class="alt" onclick="go('cfg')">≡ Configurações</button>${cur()}<span>${me.owner?'<button class="alt" onclick="go(\'admin\')">Admin</button>':''}<button class="alt" onclick="go('shop')">Loja</button></span></div>
  <div class="hb-left"><button onclick="go('miss')">Missões</button><button onclick="go('events')">Eventos${me.events.length?' ('+me.events.length+')':''}</button><button onclick="go('pass')">Passe (nível ${L})</button></div>
  <div class="pnl hb-ctr">${av(eff(me),190)}<h2>${esc(me.name)}</h2><small>Nível ${L} do passe</small><br><button onclick="go('avatar')">Editar personagem</button></div>
  <div class="pnl hb-frd"><b>Amigos</b><p><small>${me.friends.filter(f=>f.on).length} de ${me.friends.length} online</small></p><button onclick="go('friends')">Ver amigos</button><button class="alt" onclick="go('friends')">Convidar amigos</button></div>
@@ -234,6 +238,37 @@ function hubView(){
 const sub=(title,body)=>`<div class="row top"><button class="alt" onclick="go('home')">Voltar</button><b>${title}</b>${cur()}</div>${msg?`<p class="ok">${esc(msg)}</p>`:''}${err?`<p class="err">${esc(err)}</p>`:''}${body}`;
 const mrow=(k,v,done,daily)=>{const x=Math.min(v,k.n);return `<div class="pl"><div style="flex:1"><b>${k.t}</b> <small>(${x}/${k.n})</small><div class="bar"><i style="width:${x/k.n*100}%"></i></div></div>${done?'<small>Resgatada</small>':`<button ${x<k.n?'disabled':''} onclick="call({t:'claim',id:'${k.id}',daily:${daily}})">+${k.p} XP</button>`}</div>`};
 const itRow=e=>`<div class="pl"><div><b>${e.n}</b><br><small>${e.txt||'Movimento do personagem na partida'}</small></div>${ownedIt(e)?'<small>Você tem</small>':`<button ${me.coins<e.c?'disabled':''} onclick="call({t:'buy',id:'${e.id}'})">${e.c} moedas</button>`}</div>`;
+/* ---------- Eventos e Admin ---------- */
+let admTab='prices';
+const MODEL={normal:'Só meta',duelo:'1x1 (duelo)',mesa_cheia:'Mesa cheia (6+)',dobro:'Moedas em dobro'};
+const GOALL={wins:'Vencer partidas',games:'Jogar partidas',chal:'Acertar desafios',blk:'Bloquear',coup:'Dar golpes'};
+const goalTxt=g=>g?({wins:`Vencer ${g.n} partida(s)`,games:`Jogar ${g.n} partida(s)`,chal:`Acertar ${g.n} desafio(s)`,blk:`Bloquear ${g.n} vez(es)`,coup:`Dar ${g.n} golpe(s)`})[g.k]:'';
+const prizeTxt=p=>[p.coins?p.coins+' moedas':'',p.gems?p.gems+' gemas':'',p.xp?p.xp+' XP':'',p.skin?'personagem '+((SKS().find(k=>k.id===p.skin)||{}).n||''):''].filter(Boolean).join(', ')||'sem prêmio';
+const evCard=e=>{
+ const my=e.my||{n:0,c:false},g=e.goal,done=g&&my.n>=g.n,md=e.mode||'normal';
+ const play=e.active?(md==='duelo'?`<button onclick="s.emit('join',{create:true,mode:'duelo',bots:1})">Jogar 1x1 contra bot</button><button class="alt" onclick="s.emit('join',{create:true,mode:'duelo'})">Criar sala 1x1 (chamar alguém)</button>`
+  :md==='mesa_cheia'?`<button onclick="s.emit('join',{create:true,mode:'mesa_cheia',bots:5})">Jogar com bots</button><button class="alt" onclick="s.emit('join',{create:true,mode:'mesa_cheia'})">Criar sala (6+ jogadores)</button>`:''):'';
+ return `<div class="box"><b>${esc(e.title)}</b> <small>${MODEL[md]}${e.start||e.end?' | '+esc(e.start||'...')+' até '+esc(e.end||'...'):''}${e.active?'':' | fora do período'}</small><p>${esc(e.text||'')}</p>
+ ${g?`<p>Meta: ${goalTxt(g)} <small>(${Math.min(my.n,g.n)}/${g.n})</small></p><div class="bar"><i style="width:${Math.min(100,my.n/g.n*100)}%"></i></div><p><small>Prêmio: ${prizeTxt(e.prize||{})}</small></p>${my.c?'<small>Prêmio resgatado</small>':done?`<button onclick="call({t:'evclaim',id:'${e.id}'})">Resgatar prêmio</button>`:''}`:''}${md==='dobro'&&e.active?'<p><small>Suas moedas das partidas valem em dobro agora.</small></p>':''}${play}</div>`};
+const fv=i=>document.getElementById(i);
+function resizeImg(file){return new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const S=512,c=document.createElement('canvas');c.width=S;c.height=S;const m=Math.min(im.width,im.height),sx=(im.width-m)/2,sy=(im.height-m)*.25;c.getContext('2d').drawImage(im,sx,sy,m,m,0,0,S,S);ok(c.toDataURL('image/jpeg',.85))};im.onerror=()=>no(new Error('Imagem inválida.'));im.src=fr.result};fr.onerror=()=>no(new Error('Não consegui ler o arquivo.'));fr.readAsDataURL(file)})}
+async function imgFrom(i){const f=fv(i)&&fv(i).files[0];if(!f)throw new Error('Escolha uma imagem primeiro.');return resizeImg(f)}
+const admSave=id=>call({t:'adm_skin',id,c:+fv('pc_'+id).value||0,hide:fv('ph_'+id).checked,noRaffle:fv('pr_'+id).checked});
+const admEm=id=>call({t:'adm_em',id,c:+fv('pe_'+id).value||0});
+async function admImg(id){try{const img=await imgFrom('fi_'+id);await call({t:'adm_img',id,img})}catch(e){err=e.message;draw()}}
+async function admAdd(){try{const img=await imgFrom('nf');await call({t:'adm_addskin',n:fv('nn').value,r:fv('nr').value,c:+fv('nc').value||0,noRaffle:fv('nq').checked,owner:fv('no').checked,img})}catch(e){err=e.message;draw()}}
+const admEv=()=>call({t:'evadd',title:fv('et').value,text:fv('ex').value,mode:fv('em').value,goalK:fv('gk').value,goalN:+fv('gn').value||1,start:fv('es').value,end:fv('ee').value,coins:+fv('pc').value||0,gems:+fv('pg').value||0,xp:+fv('px').value||0,skin:fv('ps').value});
+const admRules=()=>call({t:'adm_rules',minPlayers:+fv('rm').value||3,blockFail:fv('rb').checked});
+const ADM={
+ prices:()=>`<h2>Preços dos personagens (gemas)</h2><p><small>Altere o preço, esconda da loja ou tire dos sorteios.</small></p>${SKS().filter(k=>!k.owner).map(k=>`<div class="pl"><div class="row">${av(k.a,44)}<div><b>${esc(k.n)}</b><br><small>${k.r}</small></div></div><div class="row"><input id="pc_${k.id}" type="number" min="0" value="${k.c}" style="width:90px"><label><input id="ph_${k.id}" type="checkbox" ${k.hide?'checked':''} style="width:auto"> esconder</label><label><input id="pr_${k.id}" type="checkbox" ${k.noRaffle?'checked':''} style="width:auto"> fora dos sorteios</label><button onclick="admSave('${k.id}')">Salvar</button></div></div>`).join('')}
+  <h2>Comemorações e gestos (moedas)</h2>${EMS().map(e=>`<div class="pl"><b>${esc(e.n)}</b><div class="row"><input id="pe_${e.id}" type="number" min="0" value="${e.c}" style="width:90px"><button onclick="admEm('${e.id}')">Salvar</button></div></div>`).join('')}`,
+ chars:()=>`<h2>Adicionar personagem</h2><div class="box"><input id="nn" placeholder="Nome do personagem" maxlength="24"><select id="nr"><option value="raro">Raro</option><option value="épico">Épico</option><option value="lendário">Lendário</option><option value="mítico">Mítico</option><option value="comum">Comum (grátis)</option></select><input id="nc" type="number" min="0" placeholder="Preço em gemas"><label><input id="nq" type="checkbox" style="width:auto"> fora dos sorteios</label><br><label><input id="no" type="checkbox" style="width:auto"> exclusivo só meu</label>
+  <p><small>Imagem do personagem: um retrato com o rosto centralizado e fundo simples. Use só imagens que você tenha direito de usar.</small></p><input id="nf" type="file" accept="image/*"><button onclick="admAdd()">Adicionar</button></div>
+  <h2>Imagens e personagens</h2>${SKS().map(k=>`<div class="pl"><div class="row">${av(k.a,48)}<div><b>${esc(k.n)}</b><br><small>${k.r}</small></div></div><div class="row"><input id="fi_${k.id}" type="file" accept="image/*" style="max-width:190px"><button class="alt" onclick="admImg('${k.id}')">Trocar imagem</button>${k.custom?`<button class="alt" onclick="call({t:'adm_delskin',id:'${k.id}'})">Apagar</button>`:''}</div></div>`).join('')}`,
+ events:()=>`<h2>Novo evento</h2><div class="box"><input id="et" placeholder="Título" maxlength="60"><input id="ex" placeholder="Descrição" maxlength="400"><b>Modo</b><select id="em">${Object.entries(MODEL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><b>Meta</b><select id="gk"><option value="">Sem meta</option>${Object.entries(GOALL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="gn" type="number" min="1" placeholder="Quantidade da meta (ex.: 10)"><b>Período (deixe vazio para sempre ativo)</b><input id="es" type="date"><input id="ee" type="date"><b>Prêmio</b><input id="pc" type="number" min="0" placeholder="Moedas"><input id="pg" type="number" min="0" placeholder="Gemas"><input id="px" type="number" min="0" placeholder="XP do passe"><select id="ps"><option value="">Sem personagem</option>${SKS().filter(k=>!k.owner&&k.c).map(k=>`<option value="${k.id}">${esc(k.n)}</option>`).join('')}</select><button onclick="admEv()">Publicar evento</button></div>
+  <h2>Eventos publicados</h2>${me.events.map(e=>`<div class="pl"><div><b>${esc(e.title)}</b><br><small>${MODEL[e.mode||'normal']} ${e.active?'(ativo)':'(fora do período)'}</small></div><button class="alt" onclick="call({t:'evdel',id:'${e.id}'})">Apagar</button></div>`).join('')||'<p>Nenhum.</p>'}`,
+ rules:()=>`<h2>Regras da casa</h2><div class="box"><b>Mínimo de jogadores fora de eventos</b><input id="rm" type="number" min="2" max="6" value="${(me.rules||{}).minPlayers||3}"><label><input id="rb" type="checkbox" ${(me.rules||{}).blockFail?'checked':''} style="width:auto"> Bloqueio falso cancela a ação (regra da casa; no jogo oficial a ação acontece mesmo assim)</label><br><button onclick="admRules()">Salvar regras</button></div>`
+};
 const SCR={
  cfg:()=>sub('Configurações',`<div class="box"><h2>Conta</h2><p>${esc(me.email)}<br>Código de jogador: <b>${me.code}</b></p><input id="nm" value="${esc(me.name)}" maxlength="14"><button onclick="call({t:'name',name:g('nm')})">Salvar nome</button><button class="alt" onclick="localStorage.clear();location.href='/'">Sair da conta</button></div>
   <div class="box"><h2>Alterar senha</h2><input id="op" type="password" placeholder="Senha atual" autocomplete="current-password"><input id="np" type="password" placeholder="Nova senha (mínimo 6 caracteres)" autocomplete="new-password"><button onclick="chpass()">Alterar senha</button></div>
@@ -241,8 +276,8 @@ const SCR={
   <p><b>Renda</b> +1. <b>Ajuda externa</b> +2 (Duque bloqueia). <b>Golpe</b> paga 7 e o alvo perde uma carta (obrigatório com 10 moedas). <b>Duque</b> taxa +3. <b>Assassino</b> paga 3 e mata uma carta (Condessa bloqueia). <b>Capitão</b> extorque 2 moedas (Capitão ou Embaixador bloqueiam). <b>Embaixador</b> troca cartas.</p>
   <p>O baralho cresce com o número de jogadores: 4 jogadores usam 15 cartas (3 de cada).</p></div>`),
  miss:()=>sub('Missões',`<p>Missões dão XP, e o XP faz o passe avançar. As diárias renovam todo dia.</p><h2>Diárias</h2>${DM.map(k=>mrow(k,me.daily.s[k.k]||0,me.daily.cl.includes(k.id),true)).join('')}<h2>Conquistas</h2>${MS.map(k=>mrow(k,me.stats[k.k]||0,me.claimed.includes(k.id),false)).join('')}`),
- events:()=>sub('Eventos',(me.events.length?me.events.map(e=>`<div class="box"><b>${esc(e.title)}</b> <small>${esc(e.at||'')}</small><p>${esc(e.text)}</p>${me.owner?`<button class="alt" onclick="call({t:'evdel',id:'${e.id}'})">Apagar</button>`:''}</div>`).join(''):'<p>Nenhum evento no momento. Volte em breve!</p>')
-  +(me.owner?`<div class="box"><h2>Novo evento</h2><input id="et" placeholder="Título" maxlength="60"><input id="ex" placeholder="Descrição" maxlength="400"><button onclick="call({t:'evadd',title:g('et'),text:g('ex')})">Publicar evento</button></div>`:'')),
+ events:()=>sub('Eventos',(me.events.length?me.events.map(evCard).join(''):'<p>Nenhum evento no momento. Volte em breve!</p>')),
+ admin:()=>me.owner?sub('Admin',`<div class="row">${[['prices','Preços'],['chars','Personagens'],['events','Eventos'],['rules','Regras']].map(([k,t])=>`<button class="${admTab===k?'':'alt'}" onclick="admTab='${k}';draw()">${t}</button>`).join('')}</div>`+ADM[admTab]()):hubView(),
  pass:()=>{const L=lvl();return sub('Passe',`<div class="pnl"><b>Nível ${L} de ${PASS.length}</b> <small>${L>=PASS.length?'completo':me.xp%XPL+'/'+XPL+' XP para o próximo nível'}</small><div class="bar"><i style="width:${L>=PASS.length?100:me.xp%XPL}%"></i></div><p><small>Ganhe XP completando missões.</small></p></div>`
   +PASS.map(r=>{const done=me.passClaimed.includes(r.l),can=L>=r.l&&!done;return `<div class="pl"><div><b>Nível ${r.l}</b><br><small>${rw(r)}</small></div>${done?'<small>Resgatado</small>':can?`<button onclick="call({t:'pass',l:${r.l}})">Resgatar</button>`:'<small>Bloqueado</small>'}</div>`}).join('')
   +`<div class="box"><b>Chances do sorteio</b><p><small>Sorteios comuns: 35% 3 gemas, 25% 100 moedas, 15% 8 gemas, 12% personagem raro, 8,5% épico, 3,5% lendário, 1% mítico.<br>Sorteio do nível 20: 20% 10 gemas, 15% 25 gemas, 25% raro, 22% épico, 12% lendário, 6% mítico.<br>Personagem repetido vira gemas.</small></p></div>`)},
@@ -256,21 +291,21 @@ const SCR={
   return sub('Personagem',`<div class="box row"><div>${av(eff(me),140)}</div><div style="flex:1;min-width:230px">
    <b>Cabelo</b><br>${ch('h',OPT.h,a.h)}<br><b>Cor do cabelo</b><br>${sw('hc',HC,a.hc)}<br><b>Pele</b><br>${sw('skin',SKN,a.skin)}<br><b>Olhos</b><br>${sw('e',EYE,a.e||EYE[0])}<br>
    <b>Barba</b><br>${ch('b',OPT.b,a.b||0)}<br><b>Roupa</b><br>${ch('cl',OPT.cl,a.cl||0)}<br>${sw('oc',OC,a.oc)}<br><b>Acessório</b><br>${ch('x',OPT.x,a.x||'')}</div></div>
-  <h2>Meus personagens</h2>${SK.filter(ownedSk).map(k=>`<div class="pl"><div class="row">${av(k.a,60)}<div><b>${k.n}</b><br><small>${k.r}${k.owner?' (só você)':''}</small></div></div>${me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`}</div>`).join('')}
+  <h2>Meus personagens</h2>${SKS().filter(ownedSk).map(k=>`<div class="pl"><div class="row">${av(k.a,60)}<div><b>${k.n}</b><br><small>${k.r}${k.owner?' (só você)':''}</small></div></div>${me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`}</div>`).join('')}
   ${me.skin?`<button class="alt" onclick="call({t:'skin',id:null})">Usar meu personagem</button>`:''}<p><small>Mais personagens na Loja (gemas) e nos sorteios do Passe.</small></p>`)},
- shop:()=>sub('Loja',`<h2>Personagens (gemas)</h2>${SK.filter(k=>k.c&&!k.owner).map(k=>`<div class="pl"><div class="row">${av(k.a,56)}<div><b>${k.n}</b><br><small>${k.r}</small></div></div>${ownedSk(k)?'<small>Você tem</small>':`<button ${me.gems<k.c?'disabled':''} onclick="call({t:'buy',id:'${k.id}'})">${k.c} gemas</button>`}</div>`).join('')}
-  <h2>Comemorações (moedas)</h2>${EM.filter(e=>e.k==='cel').map(itRow).join('')}<h2>Gestos do personagem (moedas)</h2>${EM.filter(e=>e.k==='ges').map(itRow).join('')}
+ shop:()=>sub('Loja',`<h2>Personagens (gemas)</h2>${SKS().filter(k=>k.c&&!k.owner&&!k.hide).map(k=>`<div class="pl"><div class="row">${av(k.a,56)}<div><b>${k.n}</b><br><small>${k.r}</small></div></div>${ownedSk(k)?'<small>Você tem</small>':`<button ${me.gems<k.c?'disabled':''} onclick="call({t:'buy',id:'${k.id}'})">${k.c} gemas</button>`}</div>`).join('')}
+  <h2>Comemorações (moedas)</h2>${EMS().filter(e=>e.k==='cel').map(itRow).join('')}<h2>Gestos do personagem (moedas)</h2>${EMS().filter(e=>e.k==='ges').map(itRow).join('')}
   <p><small>Gemas são raras: ganhe no Passe e nos sorteios. Moedas vêm das partidas e do Passe.</small></p>`)
 };
 const botLv=()=>st.players.some(p=>p.bot)?`<span class="row"><small>Dificuldade:</small>${[['facil','Fácil'],['medio','Médio'],['dificil','Difícil']].map(([k,t])=>`<button class="${st.lv===k?'':'alt'}" onclick="s.emit('blevel','${k}')">${t}</button>`).join('')}</span>`:'';
-const emoRow=()=>st.phase==='over'?'':`<div class="box"><small>Comemorar:</small><br>${EM.filter(ownedIt).map(e=>`<button class="alt" onclick="s.emit('emote',{id:'${e.id}'})">${e.n}</button>`).join('')}</div>`;
+const emoRow=()=>st.phase==='over'?'':`<div class="box"><small>Comemorar:</small><br>${EMS().filter(ownedIt).map(e=>`<button class="alt" onclick="s.emit('emote',{id:'${e.id}'})">${e.n}</button>`).join('')}</div>`;
 
 function lobbyView(){
  const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5)),host=st.host===st.me,fr=me.friends.filter(f=>f.on);
- return `<h1>Sala ${st.code}</h1><p>Passe o código para os amigos ou convide quem estiver online.</p>`
+ return `<h1>Sala ${st.code}</h1>${st.mode&&st.mode!=='normal'?`<p><b>Evento: ${MODEL[st.mode]}</b></p>`:''}<p>Passe o código para os amigos ou convide quem estiver online. Mínimo de ${st.min} jogadores.</p>`
  +st.players.map(p=>`<div class="pl"><div class="row">${av(p.av,44)}<b>${esc(p.name)}</b>${p.bot?'<small>bot</small>':''}</div></div>`).join('')
  +`<p>${n} jogador(es): baralho de ${cp*5} cartas (${cp} de cada).</p>`
- +(host?`<button class="alt" onclick="s.emit('bot',1)">Adicionar bot</button><button class="alt" onclick="s.emit('bot',-1)">Remover bot</button>${botLv()}<button ${n<2?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar.</p>')
+ +(host?`<button class="alt" onclick="s.emit('bot',1)">Adicionar bot</button><button class="alt" onclick="s.emit('bot',-1)">Remover bot</button>${botLv()}<button ${n<st.min?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar.</p>')
  +(fr.length?`<div class="box">Convidar amigo online:<br>${fr.map(f=>`<button class="alt" onclick="api({t:'invite',code:'${f.code}',room:'${st.code}'})">${esc(f.name)}</button>`).join('')}</div>`:'')
  +`<button class="alt" onclick="leave()">Sair da sala</button><p class="err">${esc(err)}</p>`}
 
@@ -281,7 +316,7 @@ function gameView(){
  const L=o.length>=2?o[0]:null,Rr=o.length>=2?o[o.length-1]:null,T=o.length===1?o:o.slice(1,-1);
  const seat=(p,cls,w)=>{
   const say=st.say&&st.say.pid===p.pid?`<div class="bub">${esc(st.say.text)}</div>`:'';
-  const picking=p.pid===st.me&&st.phase==='lose'&&st.lose===st.me;const fe=fxOn&&fxOn.pid===p.pid?EM.find(e=>e.id===fxOn.id):null,fxb=fe&&fe.txt?`<div class="fxb">${esc(fe.txt)}</div>`:'',fcls=fe?(fe.css||'g-bounce'):'';
+  const picking=p.pid===st.me&&st.phase==='lose'&&st.lose===st.me;const fe=fxOn&&fxOn.pid===p.pid?EMS().find(e=>e.id===fxOn.id):null,fxb=fe&&fe.txt?`<div class="fxb">${esc(fe.txt)}</div>`:'',fcls=fe?(fe.css||'g-bounce'):'';
   const hand=p.cards.map((c,i)=>picking&&!c.dead?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${cardHtml(c.c,0)}</span>`:cardHtml(c.c,c.dead)).join('');
   return `<div class="seat ${cls} ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}" style="--cw:${w}px">${say}${fxb}<div class="who ${fcls}">${av(p.av,cls==='s-me'?46:34)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div class="hand">${hand}</div></div>`};
  const rv=st.reveal?`<div class="rv"><div style="--cw:84px">${cardHtml(st.reveal.c,!st.reveal.ok)}</div><p>${nm(st.reveal.pid)} ${st.reveal.ok?'tinha':'não tinha'} ${N[st.reveal.c]}${st.reveal.ok?'!':'. Era blefe!'}</p></div>`:'';
