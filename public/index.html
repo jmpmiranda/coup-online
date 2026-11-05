@@ -68,6 +68,38 @@ button.big{font-size:1.4rem;padding:14px 26px;width:100%;margin:6px 0 0}
 select{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px;background:#0d2623;color:var(--ink);width:100%;margin:4px 0}
 .pimg{object-fit:cover;object-position:top;border-radius:14%;display:block}
 .g-bounce img{animation:bn .5s 6}.g-shake img{animation:sk .25s 12}.g-spin img{animation:sp .8s 3}.g-dance img{animation:dn .45s 7}
+.avw{position:relative;display:inline-block;line-height:0;vertical-align:middle}
+.avi{display:block;width:100%;height:100%}.avi svg,.avi img{width:100%;height:100%;display:block}
+.ov{position:absolute;inset:0;width:100%;height:100%;opacity:0;pointer-events:none}
+.who.mving .avw{z-index:7;transform:scale(1.9);transform-origin:50% 100%}
+.av-head,.av-hb{transform-origin:50px 62px}.av-body{transform-origin:50px 100px}
+.mv-clap .ov,.mv-dance .ov,.mv-wave .ov{opacity:1}.mv-wave .aL{display:none}
+@keyframes kCL{0%,100%{transform:rotate(0)}50%{transform:rotate(20deg)}}
+@keyframes kCR{0%,100%{transform:rotate(0)}50%{transform:rotate(-20deg)}}
+.mv-clap .aL{animation:kCL .35s 10}.mv-clap .aR{animation:kCR .35s 10}
+@keyframes kWv{0%,100%{transform:rotate(30deg)}50%{transform:rotate(65deg)}}
+.mv-wave .aR{transform:rotate(30deg);animation:kWv .5s 6}
+@keyframes kDL{0%,100%{transform:rotate(-30deg)}50%{transform:rotate(-75deg)}}
+@keyframes kDR{0%,100%{transform:rotate(75deg)}50%{transform:rotate(30deg)}}
+.mv-dance .aL{transform:rotate(-30deg);animation:kDL .6s 6}.mv-dance .aR{transform:rotate(75deg);animation:kDR .6s 6}
+@keyframes kSw{0%,100%{transform:rotate(-5deg) translateX(-2px)}50%{transform:rotate(5deg) translateX(2px)}}
+@keyframes kSw2{0%,100%{transform:rotate(6deg)}50%{transform:rotate(-6deg)}}
+.mv-dance .av-body{animation:kSw .6s 6}.mv-dance .av-head,.mv-dance .av-hb{animation:kSw2 .6s 6}
+@keyframes kSh{0%,100%{transform:none}30%,70%{transform:translateY(-6px)}}
+@keyframes kSh2{0%,100%{transform:none}30%,70%{transform:translateY(-3px) rotate(-3deg)}}
+.mv-shrug .av-body{animation:kSh .9s 3}.mv-shrug .av-head,.mv-shrug .av-hb{animation:kSh2 .9s 3}
+@keyframes kNd{50%{transform:translateY(5px) rotate(3deg)}}
+.mv-nod .av-head,.mv-nod .av-hb{animation:kNd .5s 5}
+@keyframes kNo{25%{transform:rotate(-9deg)}75%{transform:rotate(9deg)}}
+.mv-no .av-head,.mv-no .av-hb{animation:kNo .45s 5}
+@keyframes kBw{0%,100%{transform:none}35%,65%{transform:translateY(9px) rotate(12deg)}}
+.mv-bow .av-head,.mv-bow .av-hb{animation:kBw 1.6s 1}
+@keyframes kBn{50%{transform:translateY(-3px)}}
+.mv-jump .avi{animation:bn .5s 6}.mv-shake .avi{animation:sk .25s 12}.mv-spin .avi{animation:sp .8s 3}
+.mv-clap .avi:not(.gen),.mv-wave .avi:not(.gen){animation:kBn .4s 8}
+.mv-dance .avi:not(.gen){animation:kSw .6s 6}.mv-shrug .avi:not(.gen){animation:kSh .9s 3}
+.mv-nod .avi:not(.gen){animation:kNd .5s 5}.mv-no .avi:not(.gen){animation:kNo .45s 5}.mv-bow .avi:not(.gen){animation:kBw 1.6s 1}
+@media(prefers-reduced-motion:reduce){.avw *,.avi{animation:none!important}}
 </style></head>
 <body><div id="app"></div>
 <script src="/socket.io/socket.io.js"></script>
@@ -132,7 +164,7 @@ SP.cavaleiro=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><li
 SP.ninja=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M4 100c3-24 20-32 46-32s43 8 46 32z" fill="#17171d"/><path d="M42 74l8 26 8-26z" fill="#b3262d"/><path d="M43 56h14v16q-7 5-14 0z" fill="#101015"/><ellipse cx="50" cy="42" rx="17.500" ry="21.500" fill="#14141a"/><rect x="33" y="35" width="34" height="11" rx="5" fill="#e0b08a"/><ellipse cx="43" cy="41" rx="3.600" ry="2.200" fill="#fff"/><ellipse cx="57" cy="41" rx="3.600" ry="2.200" fill="#fff"/><circle cx="43" cy="41" r="1.800" fill="#2a2a2a"/><circle cx="57" cy="41" r="1.800" fill="#2a2a2a"/><path d="M37 37l9 3M63 37l-9 3" stroke="#14141a" stroke-width="2"/><rect x="32" y="26" width="36" height="5.500" fill="#b3262d"/><path d="M68 28q8-4 12-1M68 30q8 2 11 8" stroke="#b3262d" stroke-width="3" fill="none"/></svg>`;
 SP.mago=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M4 100c3-24 20-32 46-32s43 8 46 32z" fill="#2f3590"/><path d="M40 70l10 30 10-30" fill="none" stroke="#d4a94f" stroke-width="2"/>${HEAD('#f0cfae','#6f8397','#dcdcdc')}<path d="M33 50q17 46 34 0q-6 9-17 10t-17-10z" fill="#ececec"/><path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="#f6f6f6"/><ellipse cx="50" cy="30" rx="29" ry="6" fill="#262b78"/><path d="M33 29Q45 10 56 0Q58 15 68 29z" fill="#2f3590"/><circle cx="50" cy="18" r="1.600" fill="#f1c40f"/><circle cx="58" cy="24" r="1.200" fill="#f1c40f"/><circle cx="44" cy="25" r="1.200" fill="#f1c40f"/></svg>`;
 SP.vampiro=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M2 100c2-34 12-48 24-56l10 26 14 8 14-8 10-26c12 8 22 22 24 56z" fill="#1a0f14"/><path d="M36 70l14 8 14-8-3 14-11 6-11-6z" fill="#7a1220"/>${HEAD('#e6dde8','#c0392b','#15101a')}<path d="M33 40c-1-12 6-17 17-17s18 5 17 17c-3-6-7-9-11-8l-6 5-6-5c-4-1-8 2-11 8z" fill="#15101a"/><path d="M45 60l1.500 5 1.500-5zM52 60l1.500 5 1.500-5z" fill="#fff"/><path d="M44 60q6 3 12 0" stroke="#7a1220" stroke-width="1.400" fill="none"/></svg>`;
-function av(a,z=48){
+function avCore(a,z=48){
  a=a||{};if(a.img)return `<img class="pimg" src="${esc(a.img)}" width="${z}" height="${z}" alt="">`;if(a.sp)return SP[a.sp](z);
  const sk=a.skin||'#f5cfa7',hc=a.hc||'#3b2a1a',oc=a.oc||'#2574a9',ec=a.e||'#4a6a8a',h=a.h==null?1:a.h,b=a.b||0,cl=a.cl||0,x=a.x||'';
  const dk=shade(sk,-.2),lt=shade(sk,.25),hd=shade(hc,-.35),hl=shade(hc,.3),id='g'+sk.slice(1);
@@ -152,7 +184,14 @@ function av(a,z=48){
  const fh=[ '', '<path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="'+hd+'"/>',
   '<path d="M33 49q0 24 17 26 17-2 17-26-3 14-17 15-14-1-17-15z" fill="'+hd+'"/><path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="'+hd+'"/>',
   '<path d="M45 62q5 11 10 0-5 3-10 0z" fill="'+hd+'"/><path d="M43 57q3-2 7-1 4-1 7 1-3 3-7 1-4 2-7-1z" fill="'+hd+'"/>'][b];
- return `<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><radialGradient id="${id}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="${lt}"/><stop offset="1" stop-color="${sk}"/></radialGradient></defs>${back}<path d="M43 56h14v16q-7 5-14 0z" fill="${dk}"/><path d="M43 58h14v6q-7 4-14 0z" fill="#000" opacity=".14"/>${body}<ellipse cx="33" cy="45" rx="3" ry="5" fill="${sk}"/><ellipse cx="67" cy="45" rx="3" ry="5" fill="${sk}"/><path d="M33 44q-2 1 0 4M67 44q2 1 0 4" stroke="${dk}" fill="none" stroke-width=".7"/><ellipse cx="50" cy="42" rx="17" ry="21" fill="url(#${id})"/><ellipse cx="50" cy="60" rx="13" ry="7" fill="${dk}" opacity=".16"/><circle cx="38" cy="50" r="4" fill="#e8908a" opacity=".18"/><circle cx="62" cy="50" r="4" fill="#e8908a" opacity=".18"/>${front}<ellipse cx="43" cy="42" rx="3.600" ry="2.400" fill="#fff"/><ellipse cx="57" cy="42" rx="3.600" ry="2.400" fill="#fff"/><circle cx="43" cy="42" r="1.900" fill="${ec}"/><circle cx="57" cy="42" r="1.900" fill="${ec}"/><circle cx="43" cy="42" r=".9" fill="#111"/><circle cx="57" cy="42" r=".9" fill="#111"/><circle cx="43.600" cy="41.300" r=".5" fill="#fff"/><circle cx="57.600" cy="41.300" r=".5" fill="#fff"/><path d="M39 40.200q4-2.600 8 0M53 40.200q4-2.600 8 0" stroke="${dk}" stroke-width=".9" fill="none"/><path d="M38 36.500q5-3 9 0M53 36.500q4-3 9 0" stroke="${hd}" stroke-width="1.800" fill="none" stroke-linecap="round"/><path d="M50 44q-3 8-1 10q2 1 4 0" stroke="${dk}" fill="none" stroke-width="1.300"/><path d="M47 53.500q3 1.600 6 0" stroke="${dk}" fill="none" stroke-width=".9"/>${fh}<path d="M44.500 59.500q2.800-1.800 5.500-.2 2.700-1.600 5.500.2-5.500 2.400-11 0z" fill="#b8665c"/><path d="M45 60q5 4.200 10 0-5 1.600-10 0z" fill="#cf8076"/>${ACC[x]||''}</svg>`}
+ return `<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><radialGradient id="${id}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="${lt}"/><stop offset="1" stop-color="${sk}"/></radialGradient></defs><g class="av-hb">${back}</g><g class="av-body"><path d="M43 56h14v16q-7 5-14 0z" fill="${dk}"/><path d="M43 58h14v6q-7 4-14 0z" fill="#000" opacity=".14"/>${body}</g><g class="av-head"><ellipse cx="33" cy="45" rx="3" ry="5" fill="${sk}"/><ellipse cx="67" cy="45" rx="3" ry="5" fill="${sk}"/><path d="M33 44q-2 1 0 4M67 44q2 1 0 4" stroke="${dk}" fill="none" stroke-width=".7"/><ellipse cx="50" cy="42" rx="17" ry="21" fill="url(#${id})"/><ellipse cx="50" cy="60" rx="13" ry="7" fill="${dk}" opacity=".16"/><circle cx="38" cy="50" r="4" fill="#e8908a" opacity=".18"/><circle cx="62" cy="50" r="4" fill="#e8908a" opacity=".18"/>${front}<ellipse cx="43" cy="42" rx="3.600" ry="2.400" fill="#fff"/><ellipse cx="57" cy="42" rx="3.600" ry="2.400" fill="#fff"/><circle cx="43" cy="42" r="1.900" fill="${ec}"/><circle cx="57" cy="42" r="1.900" fill="${ec}"/><circle cx="43" cy="42" r=".9" fill="#111"/><circle cx="57" cy="42" r=".9" fill="#111"/><circle cx="43.600" cy="41.300" r=".5" fill="#fff"/><circle cx="57.600" cy="41.300" r=".5" fill="#fff"/><path d="M39 40.200q4-2.600 8 0M53 40.200q4-2.600 8 0" stroke="${dk}" stroke-width=".9" fill="none"/><path d="M38 36.500q5-3 9 0M53 36.500q4-3 9 0" stroke="${hd}" stroke-width="1.800" fill="none" stroke-linecap="round"/><path d="M50 44q-3 8-1 10q2 1 4 0" stroke="${dk}" fill="none" stroke-width="1.300"/><path d="M47 53.500q3 1.600 6 0" stroke="${dk}" fill="none" stroke-width=".9"/>${fh}<path d="M44.500 59.500q2.800-1.800 5.500-.2 2.700-1.600 5.500.2-5.500 2.400-11 0z" fill="#b8665c"/><path d="M45 60q5 4.200 10 0-5 1.600-10 0z" fill="#cf8076"/>${ACC[x]||''}</g></svg>`}
+
+const SPC={lupin:['#101016','#e0b794'],napoleao:['#1c3366','#e0b794'],cavaleiro:['#9aa5b1','#e8b98a'],ninja:['#17171d','#e0b08a'],mago:['#2f3590','#f0cfae'],vampiro:['#1a0f14','#e6dde8']};
+const ARMS=(oc,sk)=>`<svg class="ov" viewBox="0 0 100 100"><g class="aL" style="transform-origin:28px 90px"><path d="M28 90L41 65" stroke="${oc}" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="41" cy="65" r="5.200" fill="${sk}"/></g><g class="aR" style="transform-origin:72px 90px"><path d="M72 90L59 65" stroke="${oc}" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="59" cy="65" r="5.200" fill="${sk}"/></g></svg>`;
+function av(a,z=48,arms){
+ a=a||{};const gen=!a.sp&&!a.img;let ov='';
+ if(arms&&!a.img){const c=a.sp?(SPC[a.sp]||['#333','#e8b98a']):[a.oc||'#2574a9',a.skin||'#f5cfa7'];ov=ARMS(c[0],c[1])}
+ return `<span class="avw" style="width:${z}px;height:${z}px"><span class="avi${gen?' gen':''}">${avCore(a,z)}</span>${ov}</span>`}
 
 /* ---------- Cartas do Coup (ilustrações originais) ---------- */
 const CT={duke:{bg:'#4b2170',hl:'#7b3fa0',n:'DUQUE'},assassin:{bg:'#161b22',hl:'#2e3846',n:'ASSASSINO'},captain:{bg:'#143d63',hl:'#2574a9',n:'CAPITÃO'},ambassador:{bg:'#17543a',hl:'#2a8a4f',n:'EMBAIXADOR'},contessa:{bg:'#6e1f17',hl:'#a8392b',n:'CONDESSA'}};
@@ -253,21 +292,32 @@ const evCard=e=>{
 const fv=i=>document.getElementById(i);
 function resizeImg(file){return new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const S=512,c=document.createElement('canvas');c.width=S;c.height=S;const m=Math.min(im.width,im.height),sx=(im.width-m)/2,sy=(im.height-m)*.25;c.getContext('2d').drawImage(im,sx,sy,m,m,0,0,S,S);ok(c.toDataURL('image/jpeg',.85))};im.onerror=()=>no(new Error('Imagem inválida.'));im.src=fr.result};fr.onerror=()=>no(new Error('Não consegui ler o arquivo.'));fr.readAsDataURL(file)})}
 async function imgFrom(i){const f=fv(i)&&fv(i).files[0];if(!f)throw new Error('Escolha uma imagem primeiro.');return resizeImg(f)}
-const admSave=id=>call({t:'adm_skin',id,c:+fv('pc_'+id).value||0,hide:fv('ph_'+id).checked,noRaffle:fv('pr_'+id).checked});
+const admSave=id=>call({t:'adm_skin',id,c:+fv('pc_'+id).value||0,r:fv('pq_'+id).value,owner:fv('po_'+id).checked,hide:fv('ph_'+id).checked,noRaffle:fv('pr_'+id).checked});
 const admEm=id=>call({t:'adm_em',id,c:+fv('pe_'+id).value||0});
 async function admImg(id){try{const img=await imgFrom('fi_'+id);await call({t:'adm_img',id,img})}catch(e){err=e.message;draw()}}
 async function admAdd(){try{const img=await imgFrom('nf');await call({t:'adm_addskin',n:fv('nn').value,r:fv('nr').value,c:+fv('nc').value||0,noRaffle:fv('nq').checked,owner:fv('no').checked,img})}catch(e){err=e.message;draw()}}
 const admEv=()=>call({t:'evadd',title:fv('et').value,text:fv('ex').value,mode:fv('em').value,goalK:fv('gk').value,goalN:+fv('gn').value||1,start:fv('es').value,end:fv('ee').value,coins:+fv('pc').value||0,gems:+fv('pg').value||0,xp:+fv('px').value||0,skin:fv('ps').value});
-const admRules=()=>call({t:'adm_rules',minPlayers:+fv('rm').value||3,blockFail:fv('rb').checked});
+const admRules=()=>call({t:'adm_rules',minPlayers:+fv('rm').value||3});
+const admEmAdd=()=>call({t:'adm_addem',n:fv('en').value,txt:fv('ef').value,mv:fv('ev').value,c:+fv('ec').value||0});
+const RAR=['comum','raro','épico','lendário','mítico','exclusivo'];
+const CHARS=['duke','assassin','captain','ambassador','contessa'];
+let pvMv='',pvT=0;
+const testMv=m=>{pvMv=m;draw();clearTimeout(pvT);pvT=setTimeout(()=>{pvMv='';draw()},3500)};
+function pickView(){
+ const done=st.picked.includes(st.me);
+ return `<h2>1x1: escolha sua carta</h2><p>Escolha 1 carta de qualquer personagem. A outra carta da sua mão será sorteada, e sobram 3 cartas no baralho.</p>${done?'<p>Escolha feita. Aguardando o adversário...</p>':`<div class="row" style="--cw:84px">${CHARS.map(c=>`<span class="pick" onclick="s.emit('pick','${c}')">${cardHtml(c,0)}</span>`).join('')}</div>`}<button class="alt" onclick="leave()">Sair da sala</button>`}
 const ADM={
- prices:()=>`<h2>Preços dos personagens (gemas)</h2><p><small>Altere o preço, esconda da loja ou tire dos sorteios.</small></p>${SKS().filter(k=>!k.owner).map(k=>`<div class="pl"><div class="row">${av(k.a,44)}<div><b>${esc(k.n)}</b><br><small>${k.r}</small></div></div><div class="row"><input id="pc_${k.id}" type="number" min="0" value="${k.c}" style="width:90px"><label><input id="ph_${k.id}" type="checkbox" ${k.hide?'checked':''} style="width:auto"> esconder</label><label><input id="pr_${k.id}" type="checkbox" ${k.noRaffle?'checked':''} style="width:auto"> fora dos sorteios</label><button onclick="admSave('${k.id}')">Salvar</button></div></div>`).join('')}
-  <h2>Comemorações e gestos (moedas)</h2>${EMS().map(e=>`<div class="pl"><b>${esc(e.n)}</b><div class="row"><input id="pe_${e.id}" type="number" min="0" value="${e.c}" style="width:90px"><button onclick="admEm('${e.id}')">Salvar</button></div></div>`).join('')}`,
+ prices:()=>`<h2>Personagens: preço, nível e visibilidade</h2><p><small>Nível = raridade (comum, raro, épico, lendário, mítico). Preço em gemas.</small></p>${SKS().map(k=>`<div class="pl" style="flex-wrap:wrap"><div class="row">${av(k.a,44)}<div><b>${esc(k.n)}</b><br><small>${k.r}${k.owner?' (só você)':''}${k.mod?' | alterado':''}</small></div></div><div class="row"><input id="pc_${k.id}" type="number" min="0" value="${k.c}" style="width:90px"><select id="pq_${k.id}" style="width:auto">${RAR.map(r=>`<option ${k.r===r?'selected':''}>${r}</option>`).join('')}</select><label><input id="po_${k.id}" type="checkbox" ${k.owner?'checked':''} style="width:auto"> só meu</label><label><input id="ph_${k.id}" type="checkbox" ${k.hide?'checked':''} style="width:auto"> esconder</label><label><input id="pr_${k.id}" type="checkbox" ${k.noRaffle?'checked':''} style="width:auto"> fora dos sorteios</label><button onclick="admSave('${k.id}')">Salvar</button>${k.mod?`<button class="alt" onclick="call({t:'adm_reset',id:'${k.id}'})">Restaurar original</button>`:''}</div></div>`).join('')}
+  <h2>Preços de falas e movimentos (moedas)</h2>${EMS().map(e=>`<div class="pl"><b>${esc(e.n)}</b><div class="row"><input id="pe_${e.id}" type="number" min="0" value="${e.c}" style="width:90px"><button onclick="admEm('${e.id}')">Salvar</button></div></div>`).join('')}`,
  chars:()=>`<h2>Adicionar personagem</h2><div class="box"><input id="nn" placeholder="Nome do personagem" maxlength="24"><select id="nr"><option value="raro">Raro</option><option value="épico">Épico</option><option value="lendário">Lendário</option><option value="mítico">Mítico</option><option value="comum">Comum (grátis)</option></select><input id="nc" type="number" min="0" placeholder="Preço em gemas"><label><input id="nq" type="checkbox" style="width:auto"> fora dos sorteios</label><br><label><input id="no" type="checkbox" style="width:auto"> exclusivo só meu</label>
   <p><small>Imagem do personagem: um retrato com o rosto centralizado e fundo simples. Use só imagens que você tenha direito de usar.</small></p><input id="nf" type="file" accept="image/*"><button onclick="admAdd()">Adicionar</button></div>
-  <h2>Imagens e personagens</h2>${SKS().map(k=>`<div class="pl"><div class="row">${av(k.a,48)}<div><b>${esc(k.n)}</b><br><small>${k.r}</small></div></div><div class="row"><input id="fi_${k.id}" type="file" accept="image/*" style="max-width:190px"><button class="alt" onclick="admImg('${k.id}')">Trocar imagem</button>${k.custom?`<button class="alt" onclick="call({t:'adm_delskin',id:'${k.id}'})">Apagar</button>`:''}</div></div>`).join('')}`,
+  <h2>Imagens e personagens</h2>${SKS().map(k=>`<div class="pl" style="flex-wrap:wrap"><div class="row">${av(k.a,48)}<div><b>${esc(k.n)}</b><br><small>${k.r}${k.mod?' | alterado':''}</small></div></div><div class="row"><input id="fi_${k.id}" type="file" accept="image/*" style="max-width:190px"><button class="alt" onclick="admImg('${k.id}')">Trocar imagem</button>${k.mod?`<button onclick="call({t:'adm_reset',id:'${k.id}'})">Restaurar original</button>`:''}${k.custom?`<button class="alt" onclick="call({t:'adm_delskin',id:'${k.id}'})">Apagar</button>`:''}</div></div>`).join('')}`,
+ falas:()=>`<div class="${pvMv?'mving mv-'+pvMv:''}" style="text-align:center">${av(eff(me),120,true)}</div><h2>Nova fala ou movimento</h2><div class="box"><input id="en" placeholder="Nome (ex.: Comemoração do campeão)" maxlength="24"><input id="ef" placeholder="Fala que aparece no balão (opcional)" maxlength="60"><select id="ev"><option value="">Sem movimento</option>${Object.entries(MV).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="ec" type="number" min="0" placeholder="Preço em moedas (0 = grátis)"><button onclick="admEmAdd()">Criar</button></div>
+  <h2>Testar movimentos</h2><div>${Object.entries(MV).map(([k,t])=>`<button class="alt" onclick="testMv('${k}')">${t}</button>`).join('')}</div>
+  <h2>Criadas por você</h2>${EMS().filter(e=>e.custom).map(e=>`<div class="pl"><div><b>${esc(e.n)}</b><br><small>${e.txt?esc(e.txt):'sem fala'} | ${e.mv?MV[e.mv]:'sem movimento'} | ${e.c} moedas</small></div><button class="alt" onclick="call({t:'adm_delem',id:'${e.id}'})">Apagar</button></div>`).join('')||'<p>Nenhuma ainda.</p>'}`,
  events:()=>`<h2>Novo evento</h2><div class="box"><input id="et" placeholder="Título" maxlength="60"><input id="ex" placeholder="Descrição" maxlength="400"><b>Modo</b><select id="em">${Object.entries(MODEL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><b>Meta</b><select id="gk"><option value="">Sem meta</option>${Object.entries(GOALL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="gn" type="number" min="1" placeholder="Quantidade da meta (ex.: 10)"><b>Período (deixe vazio para sempre ativo)</b><input id="es" type="date"><input id="ee" type="date"><b>Prêmio</b><input id="pc" type="number" min="0" placeholder="Moedas"><input id="pg" type="number" min="0" placeholder="Gemas"><input id="px" type="number" min="0" placeholder="XP do passe"><select id="ps"><option value="">Sem personagem</option>${SKS().filter(k=>!k.owner&&k.c).map(k=>`<option value="${k.id}">${esc(k.n)}</option>`).join('')}</select><button onclick="admEv()">Publicar evento</button></div>
   <h2>Eventos publicados</h2>${me.events.map(e=>`<div class="pl"><div><b>${esc(e.title)}</b><br><small>${MODEL[e.mode||'normal']} ${e.active?'(ativo)':'(fora do período)'}</small></div><button class="alt" onclick="call({t:'evdel',id:'${e.id}'})">Apagar</button></div>`).join('')||'<p>Nenhum.</p>'}`,
- rules:()=>`<h2>Regras da casa</h2><div class="box"><b>Mínimo de jogadores fora de eventos</b><input id="rm" type="number" min="2" max="6" value="${(me.rules||{}).minPlayers||3}"><label><input id="rb" type="checkbox" ${(me.rules||{}).blockFail?'checked':''} style="width:auto"> Bloqueio falso cancela a ação (regra da casa; no jogo oficial a ação acontece mesmo assim)</label><br><button onclick="admRules()">Salvar regras</button></div>`
+ rules:()=>`<h2>Regras da casa</h2><div class="box"><b>Mínimo de jogadores fora de eventos</b><input id="rm" type="number" min="2" max="6" value="${(me.rules||{}).minPlayers||3}"><button onclick="admRules()">Salvar regras</button></div><p><small>O duelo 1x1 só existe em eventos: cada jogador escolhe 1 carta, a outra é sorteada e sobram 3 cartas no baralho.</small></p>`
 };
 const SCR={
  cfg:()=>sub('Configurações',`<div class="box"><h2>Conta</h2><p>${esc(me.email)}<br>Código de jogador: <b>${me.code}</b></p><input id="nm" value="${esc(me.name)}" maxlength="14"><button onclick="call({t:'name',name:g('nm')})">Salvar nome</button><button class="alt" onclick="localStorage.clear();location.href='/'">Sair da conta</button></div>
@@ -277,7 +327,7 @@ const SCR={
   <p>O baralho cresce com o número de jogadores: 4 jogadores usam 15 cartas (3 de cada).</p></div>`),
  miss:()=>sub('Missões',`<p>Missões dão XP, e o XP faz o passe avançar. As diárias renovam todo dia.</p><h2>Diárias</h2>${DM.map(k=>mrow(k,me.daily.s[k.k]||0,me.daily.cl.includes(k.id),true)).join('')}<h2>Conquistas</h2>${MS.map(k=>mrow(k,me.stats[k.k]||0,me.claimed.includes(k.id),false)).join('')}`),
  events:()=>sub('Eventos',(me.events.length?me.events.map(evCard).join(''):'<p>Nenhum evento no momento. Volte em breve!</p>')),
- admin:()=>me.owner?sub('Admin',`<div class="row">${[['prices','Preços'],['chars','Personagens'],['events','Eventos'],['rules','Regras']].map(([k,t])=>`<button class="${admTab===k?'':'alt'}" onclick="admTab='${k}';draw()">${t}</button>`).join('')}</div>`+ADM[admTab]()):hubView(),
+ admin:()=>me.owner?sub('Admin',`<div class="row">${[['prices','Preços e níveis'],['chars','Personagens'],['falas','Falas e movimentos'],['events','Eventos'],['rules','Regras']].map(([k,t])=>`<button class="${admTab===k?'':'alt'}" onclick="admTab='${k}';draw()">${t}</button>`).join('')}</div>`+ADM[admTab]()):hubView(),
  pass:()=>{const L=lvl();return sub('Passe',`<div class="pnl"><b>Nível ${L} de ${PASS.length}</b> <small>${L>=PASS.length?'completo':me.xp%XPL+'/'+XPL+' XP para o próximo nível'}</small><div class="bar"><i style="width:${L>=PASS.length?100:me.xp%XPL}%"></i></div><p><small>Ganhe XP completando missões.</small></p></div>`
   +PASS.map(r=>{const done=me.passClaimed.includes(r.l),can=L>=r.l&&!done;return `<div class="pl"><div><b>Nível ${r.l}</b><br><small>${rw(r)}</small></div>${done?'<small>Resgatado</small>':can?`<button onclick="call({t:'pass',l:${r.l}})">Resgatar</button>`:'<small>Bloqueado</small>'}</div>`}).join('')
   +`<div class="box"><b>Chances do sorteio</b><p><small>Sorteios comuns: 35% 3 gemas, 25% 100 moedas, 15% 8 gemas, 12% personagem raro, 8,5% épico, 3,5% lendário, 1% mítico.<br>Sorteio do nível 20: 20% 10 gemas, 15% 25 gemas, 25% raro, 22% épico, 12% lendário, 6% mítico.<br>Personagem repetido vira gemas.</small></p></div>`)},
@@ -288,13 +338,13 @@ const SCR={
  avatar:()=>{
   const a=me.avatar,sw=(k,L,cur)=>L.map(c=>`<button class="sw ${cur===c?'on':''}" style="background:${c}" aria-label="${c}" onclick='${sa(k,c)}'></button>`).join('');
   const ch=(k,L,cur)=>L.map((n,i)=>{const v=Array.isArray(n)?n[0]:i,t=Array.isArray(n)?n[1]:n;return `<button class="${cur===v?'':'alt'}" onclick='${sa(k,v)}'>${t}</button>`}).join('');
-  return sub('Personagem',`<div class="box row"><div>${av(eff(me),140)}</div><div style="flex:1;min-width:230px">
+  return sub('Personagem',`<div class="box row"><div class="${pvMv?'mving mv-'+pvMv:''}">${av(eff(me),140,true)}</div><div style="flex:1;min-width:230px">
    <b>Cabelo</b><br>${ch('h',OPT.h,a.h)}<br><b>Cor do cabelo</b><br>${sw('hc',HC,a.hc)}<br><b>Pele</b><br>${sw('skin',SKN,a.skin)}<br><b>Olhos</b><br>${sw('e',EYE,a.e||EYE[0])}<br>
    <b>Barba</b><br>${ch('b',OPT.b,a.b||0)}<br><b>Roupa</b><br>${ch('cl',OPT.cl,a.cl||0)}<br>${sw('oc',OC,a.oc)}<br><b>Acessório</b><br>${ch('x',OPT.x,a.x||'')}</div></div>
-  <h2>Meus personagens</h2>${SKS().filter(ownedSk).map(k=>`<div class="pl"><div class="row">${av(k.a,60)}<div><b>${k.n}</b><br><small>${k.r}${k.owner?' (só você)':''}</small></div></div>${me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`}</div>`).join('')}
+  <h2>Testar movimentos</h2><div>${EMS().filter(e=>e.mv&&ownedIt(e)).map(e=>`<button class="alt" onclick="testMv('${e.mv}')">${esc(e.n)}</button>`).join('')}</div><h2>Meus personagens</h2>${SKS().filter(ownedSk).map(k=>`<div class="pl"><div class="row">${av(k.a,60)}<div><b>${k.n}</b><br><small>${k.r}${k.owner?' (só você)':''}</small></div></div>${me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`}</div>`).join('')}
   ${me.skin?`<button class="alt" onclick="call({t:'skin',id:null})">Usar meu personagem</button>`:''}<p><small>Mais personagens na Loja (gemas) e nos sorteios do Passe.</small></p>`)},
  shop:()=>sub('Loja',`<h2>Personagens (gemas)</h2>${SKS().filter(k=>k.c&&!k.owner&&!k.hide).map(k=>`<div class="pl"><div class="row">${av(k.a,56)}<div><b>${k.n}</b><br><small>${k.r}</small></div></div>${ownedSk(k)?'<small>Você tem</small>':`<button ${me.gems<k.c?'disabled':''} onclick="call({t:'buy',id:'${k.id}'})">${k.c} gemas</button>`}</div>`).join('')}
-  <h2>Comemorações (moedas)</h2>${EMS().filter(e=>e.k==='cel').map(itRow).join('')}<h2>Gestos do personagem (moedas)</h2>${EMS().filter(e=>e.k==='ges').map(itRow).join('')}
+  <h2>Falas e comemorações (moedas)</h2>${EMS().filter(e=>e.txt).map(itRow).join('')}<h2>Movimentos do personagem (moedas)</h2>${EMS().filter(e=>!e.txt).map(itRow).join('')}
   <p><small>Gemas são raras: ganhe no Passe e nos sorteios. Moedas vêm das partidas e do Passe.</small></p>`)
 };
 const botLv=()=>st.players.some(p=>p.bot)?`<span class="row"><small>Dificuldade:</small>${[['facil','Fácil'],['medio','Médio'],['dificil','Difícil']].map(([k,t])=>`<button class="${st.lv===k?'':'alt'}" onclick="s.emit('blevel','${k}')">${t}</button>`).join('')}</span>`:'';
@@ -302,9 +352,9 @@ const emoRow=()=>st.phase==='over'?'':`<div class="box"><small>Comemorar:</small
 
 function lobbyView(){
  const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5)),host=st.host===st.me,fr=me.friends.filter(f=>f.on);
- return `<h1>Sala ${st.code}</h1>${st.mode&&st.mode!=='normal'?`<p><b>Evento: ${MODEL[st.mode]}</b></p>`:''}<p>Passe o código para os amigos ou convide quem estiver online. Mínimo de ${st.min} jogadores.</p>`
+ return `<h1>Sala ${st.code}</h1>${st.mode&&st.mode!=='normal'?`<p><b>Evento: ${MODEL[st.mode]}</b></p>${st.mode==='duelo'?'<p><small>No duelo, cada um escolhe 1 carta, a outra é sorteada e sobram 3 cartas no baralho.</small></p>':''}`:''}<p>Passe o código para os amigos ou convide quem estiver online. Mínimo de ${st.min} jogadores.</p>`
  +st.players.map(p=>`<div class="pl"><div class="row">${av(p.av,44)}<b>${esc(p.name)}</b>${p.bot?'<small>bot</small>':''}</div></div>`).join('')
- +`<p>${n} jogador(es): baralho de ${cp*5} cartas (${cp} de cada).</p>`
+ +`${st.mode==='duelo'?`<p>${n} jogador(es). Baralho do duelo: 3 cartas depois da distribuição.</p>`:`<p>${n} jogador(es): baralho de ${cp*5} cartas (${cp} de cada).</p>`}`
  +(host?`<button class="alt" onclick="s.emit('bot',1)">Adicionar bot</button><button class="alt" onclick="s.emit('bot',-1)">Remover bot</button>${botLv()}<button ${n<st.min?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar.</p>')
  +(fr.length?`<div class="box">Convidar amigo online:<br>${fr.map(f=>`<button class="alt" onclick="api({t:'invite',code:'${f.code}',room:'${st.code}'})">${esc(f.name)}</button>`).join('')}</div>`:'')
  +`<button class="alt" onclick="leave()">Sair da sala</button><p class="err">${esc(err)}</p>`}
@@ -316,9 +366,9 @@ function gameView(){
  const L=o.length>=2?o[0]:null,Rr=o.length>=2?o[o.length-1]:null,T=o.length===1?o:o.slice(1,-1);
  const seat=(p,cls,w)=>{
   const say=st.say&&st.say.pid===p.pid?`<div class="bub">${esc(st.say.text)}</div>`:'';
-  const picking=p.pid===st.me&&st.phase==='lose'&&st.lose===st.me;const fe=fxOn&&fxOn.pid===p.pid?EMS().find(e=>e.id===fxOn.id):null,fxb=fe&&fe.txt?`<div class="fxb">${esc(fe.txt)}</div>`:'',fcls=fe?(fe.css||'g-bounce'):'';
+  const picking=p.pid===st.me&&st.phase==='lose'&&st.lose===st.me;const fe=fxOn&&fxOn.pid===p.pid?EMS().find(e=>e.id===fxOn.id):null,fxb=fe&&fe.txt?`<div class="fxb">${esc(fe.txt)}</div>`:'',fcls=fe&&fe.mv?'mving mv-'+fe.mv:'';
   const hand=p.cards.map((c,i)=>picking&&!c.dead?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${cardHtml(c.c,0)}</span>`:cardHtml(c.c,c.dead)).join('');
-  return `<div class="seat ${cls} ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}" style="--cw:${w}px">${say}${fxb}<div class="who ${fcls}">${av(p.av,cls==='s-me'?46:34)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div class="hand">${hand}</div></div>`};
+  return `<div class="seat ${cls} ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}" style="--cw:${w}px">${say}${fxb}<div class="who ${fcls}">${av(p.av,cls==='s-me'?46:34,true)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div class="hand">${hand}</div></div>`};
  const rv=st.reveal?`<div class="rv"><div style="--cw:84px">${cardHtml(st.reveal.c,!st.reveal.ok)}</div><p>${nm(st.reveal.pid)} ${st.reveal.ok?'tinha':'não tinha'} ${N[st.reveal.c]}${st.reveal.ok?'!':'. Era blefe!'}</p></div>`:'';
  let status='',ctl='';
  if(st.phase==='action'){
@@ -360,6 +410,6 @@ function gameView(){
  <div class="box" id="log">${st.log.slice().reverse().map(esc).join('<br>')}</div>
  ${st.phase==='over'?'':'<button class="alt" onclick="leave()">Sair da sala</button>'}`}
 
-function draw(){$.className=(me&&!st&&scr==='home')?'wide':'';$.innerHTML=!me?authView():!st?(SCR[scr]||hubView)():st.phase==='lobby'?lobbyView():gameView()}
+function draw(){$.className=(me&&!st&&scr==='home')?'wide':'';$.innerHTML=!me?authView():!st?(SCR[scr]||hubView)():st.phase==='lobby'?lobbyView():st.phase==='pick'?pickView():gameView()}
 draw();
 </script></body></html>

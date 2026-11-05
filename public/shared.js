@@ -22,15 +22,22 @@ var PASS=[
  {l:11,t:'coins',n:120},{l:12,t:'gems',n:8},{l:13,t:'coins',n:120},{l:14,t:'raffle',n:1},{l:15,t:'gems',n:10},
  {l:16,t:'coins',n:150},{l:17,t:'raffle',n:1},{l:18,t:'gems',n:10},{l:19,t:'coins',n:200},{l:20,t:'raffle',n:2}
 ];
+var MV={clap:'Bater palmas',dance:'Dançar',shrug:'Dar de ombros',wave:'Acenar',bow:'Reverência',nod:'Dizer sim com a cabeça',no:'Dizer não com a cabeça',jump:'Pular',shake:'Tremer',spin:'Girar'};
 var EM=[
- {id:'palmas',k:'cel',n:'Palmas',txt:'Boa jogada!',c:0},
- {id:'risada',k:'cel',n:'Risada',txt:'Haha, essa foi boa!',c:60},
- {id:'sorte',k:'cel',n:'Que sorte!',txt:'Que sorte a minha!',c:60},
- {id:'confete',k:'cel',n:'Confete',txt:'Vitória à vista!',c:120},
- {id:'pular',k:'ges',n:'Pulinho',css:'g-bounce',c:0},
- {id:'tremer',k:'ges',n:'Tremer de medo',css:'g-shake',c:80},
- {id:'girar',k:'ges',n:'Girar',css:'g-spin',c:120},
- {id:'danca',k:'ges',n:'Dancinha',css:'g-dance',c:200}
+ {id:'palmas',n:'Palmas',txt:'Boa jogada!',mv:'clap',c:0},
+ {id:'pular',n:'Pulinho',mv:'jump',c:0},
+ {id:'risada',n:'Risada',txt:'Haha, essa foi boa!',mv:'shrug',c:60},
+ {id:'sorte',n:'Que sorte!',txt:'Que sorte a minha!',mv:'jump',c:60},
+ {id:'confete',n:'Confete',txt:'Vitória à vista!',mv:'dance',c:120},
+ {id:'sim',n:'Dizer sim',mv:'nod',c:40},
+ {id:'nao',n:'Dizer não',mv:'no',c:40},
+ {id:'aceno',n:'Acenar',mv:'wave',c:60},
+ {id:'ombros',n:'Dar de ombros',mv:'shrug',c:80},
+ {id:'tremer',n:'Tremer de medo',mv:'shake',c:80},
+ {id:'reverencia',n:'Reverência',mv:'bow',c:100},
+ {id:'aplauso',n:'Aplauso',mv:'clap',c:100},
+ {id:'girar',n:'Girar',mv:'spin',c:120},
+ {id:'danca',n:'Dancinha',mv:'dance',c:200}
 ];
 var DM=[
  {id:'d1',t:'Jogar 2 partidas hoje',k:'games',n:2,p:40},
@@ -47,4 +54,4 @@ var MS=[
  {id:'m6',t:'Bloquear 5 vezes',k:'blk',n:5,p:60},
  {id:'m7',t:'Dar 5 golpes',k:'coup',n:5,p:60}
 ];
-if(typeof module!=='undefined')module.exports={SK:SK,MS:MS,DM:DM,PASS:PASS,XPL:XPL,EM:EM};
+if(typeof module!=='undefined')module.exports={SK:SK,MS:MS,DM:DM,PASS:PASS,XPL:XPL,EM:EM,MV:MV};
