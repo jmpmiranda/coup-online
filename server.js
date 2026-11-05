@@ -1,5 +1,5 @@
 const express = require('express'), http = require('http'), fs = require('fs'), crypto = require('crypto'), { Server } = require('socket.io');
-const { SK, MS, DM, PASS, XPL, EM } = require('./public/shared.js');
+const { SK, MS, DM, PASS, XPL, EM, MV } = require('./public/shared.js');
 const app = express(); app.use(express.static(__dirname + '/public'));
 const srv = http.createServer(app), io = new Server(srv);
 
@@ -8,7 +8,7 @@ const SBURL = (process.env.SUPABASE_URL || '').replace(/\/$/, ''), SBKEY = proce
 const sbh = { apikey: SBKEY, ...(SBKEY.startsWith('eyJ') ? { Authorization: 'Bearer ' + SBKEY } : {}), 'Content-Type': 'application/json' };
 const FILE = process.env.DATA_FILE || __dirname + '/data.json';
 const OWNER = (process.env.OWNER_EMAIL || '').trim().toLowerCase();
-let db = { users: {}, emails: {}, codes: {}, sessions: {}, events: [], cskins: [], cfg: {} };
+let db = { users: {}, emails: {}, codes: {}, sessions: {}, events: [], cskins: [], cemotes: [], cfg: {} };
 
 const day = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
 const chkDaily = u => { if (u.daily.d !== day()) u.daily = { d: day(), s: {}, cl: [] }; };
@@ -35,9 +35,9 @@ async function load() {
     if (!r.ok) throw new Error('Supabase ' + r.status + ': ' + await r.text()); // não sobe vazio para não apagar dados
     const j = await r.json(); if (j[0]) db = j[0].value;
   } else { try { db = JSON.parse(fs.readFileSync(FILE)); } catch (e) {} }
-  db.events = db.events || []; db.cskins = db.cskins || []; db.cfg = db.cfg || {};
+  db.events = db.events || []; db.cskins = db.cskins || []; db.cemotes = db.cemotes || []; db.cfg = db.cfg || {};
   db.cfg.sk = db.cfg.sk || {}; db.cfg.em = db.cfg.em || {}; db.cfg.img = db.cfg.img || {};
-  db.cfg.rules = Object.assign({ minPlayers: 3, blockFail: false }, db.cfg.rules);
+  db.cfg.rules = { minPlayers: 3, ...db.cfg.rules }; delete db.cfg.rules.blockFail;
   Object.values(db.users).forEach(norm); await imgLoad();
 }
 async function persist() {
@@ -57,7 +57,7 @@ const profile = u => {
   chkDaily(u);
   return {
     id: u.id, email: u.email, name: u.name, code: u.code, coins: u.coins, gems: u.gems, xp: u.xp, passClaimed: u.passClaimed,
-    items: isOwner(u) ? EM.map(e => e.id) : u.items, stats: u.stats, claimed: u.claimed, daily: u.daily, owner: isOwner(u),
+    items: isOwner(u) ? emotes().map(e => e.id) : u.items, stats: u.stats, claimed: u.claimed, daily: u.daily, owner: isOwner(u),
     skins: isOwner(u) ? skins().map(k => k.id) : u.skins, avatar: u.avatar, skin: u.skin, events: db.events.map(e => ({ ...e, active: isActive(e), my: u.ev[e.id] || { n: 0, c: false } })), cat: { skins: skins().filter(k => !k.owner || isOwner(u)), em: emotes() }, rules: isOwner(u) ? db.cfg.rules : null,
     friends: u.friends.map(c => db.users[db.codes[c]]).filter(Boolean).map(f => ({ code: f.code, name: f.name, av: avOf(f), on: !!online[f.id] }))
   };
@@ -88,10 +88,10 @@ app.get('/verify', (q, res) => {
 function skins() {
   return SK.map(k => ({ ...k })).concat(db.cskins.map(k => ({ ...k, custom: true }))).map(k => {
     const o = db.cfg.sk[k.id] || {}, iv = db.cfg.img[k.id];
-    return { ...k, c: o.c != null ? o.c : k.c, hide: !!o.hide, noRaffle: !!o.noRaffle, a: iv ? { img: `/img/${k.id}?v=${iv}` } : k.a };
+    return { ...k, c: o.c != null ? o.c : k.c, r: o.r || k.r, owner: o.owner != null ? o.owner : k.owner, hide: !!o.hide, noRaffle: !!o.noRaffle, mod: !k.custom && !!(db.cfg.sk[k.id] || iv), a: iv ? { img: `/img/${k.id}?v=${iv}` } : k.a };
   });
 }
-function emotes() { return EM.map(e => ({ ...e, c: db.cfg.em[e.id] && db.cfg.em[e.id].c != null ? db.cfg.em[e.id].c : e.c })); }
+function emotes() { return EM.concat(db.cemotes.map(e => ({ ...e, custom: true }))).map(e => ({ ...e, c: db.cfg.em[e.id] && db.cfg.em[e.id].c != null ? db.cfg.em[e.id].c : e.c })); }
 const adm = u => { if (!isOwner(u)) throw new Error('Só o dono do app pode fazer isso.'); };
 const IMGS = {}, IMGFILE = FILE.replace(/\.json$/, '') + '-imgs.json';
 async function imgLoad() {
@@ -265,14 +265,16 @@ async function api(s, m) {
       adm(u); const k = skins().find(x => x.id === m.id); if (!k) throw new Error('Personagem não encontrado.');
       const o = db.cfg.sk[k.id] = db.cfg.sk[k.id] || {};
       if (m.c != null) o.c = Math.max(0, Math.min(100000, m.c | 0));
+      if (['comum', 'raro', 'épico', 'lendário', 'mítico', 'exclusivo'].includes(m.r)) o.r = m.r;
+      if (m.owner != null) o.owner = !!m.owner;
       o.hide = !!m.hide; o.noRaffle = !!m.noRaffle; break;
     }
     case 'adm_em': {
-      adm(u); const e = EM.find(x => x.id === m.id); if (!e) throw new Error('Item não encontrado.');
+      adm(u); const e = emotes().find(x => x.id === m.id); if (!e) throw new Error('Item não encontrado.');
       db.cfg.em[e.id] = { c: Math.max(0, Math.min(100000, m.c | 0)) }; break;
     }
     case 'adm_rules': {
-      adm(u); db.cfg.rules = { minPlayers: Math.max(2, Math.min(6, (m.minPlayers | 0) || 3)), blockFail: !!m.blockFail }; break;
+      adm(u); db.cfg.rules = { minPlayers: Math.max(2, Math.min(6, (m.minPlayers | 0) || 3)) }; break;
     }
     case 'adm_addskin': {
       adm(u);
@@ -286,6 +288,17 @@ async function api(s, m) {
     case 'adm_img': {
       adm(u); const k = skins().find(x => x.id === m.id); if (!k) throw new Error('Personagem não encontrado.');
       await imgPut(k.id, imgOk(m.img)); db.cfg.img[k.id] = Date.now(); break;
+    }
+    case 'adm_addem': {
+      adm(u);
+      const n = String(m.n || '').trim().slice(0, 24), txt = String(m.txt || '').trim().slice(0, 60), mv = Object.keys(MV).includes(m.mv) ? m.mv : '';
+      if (!n) throw new Error('Digite o nome.'); if (!txt && !mv) throw new Error('Coloque uma fala, um movimento ou os dois.');
+      db.cemotes.push({ id: 'e' + crypto.randomBytes(4).toString('hex'), n, txt, mv, c: Math.max(0, Math.min(100000, m.c | 0)) }); break;
+    }
+    case 'adm_delem': { adm(u); db.cemotes = db.cemotes.filter(e => e.id !== m.id); break; }
+    case 'adm_reset': {
+      adm(u); const k = SK.find(x => x.id === m.id); if (!k) throw new Error('Só dá para restaurar personagens padrão.');
+      delete db.cfg.sk[k.id]; delete db.cfg.img[k.id]; await imgDel(k.id); break;
     }
     case 'adm_delskin': {
       adm(u); const i = db.cskins.findIndex(x => x.id === m.id);
@@ -450,7 +463,7 @@ function apply(r, p, m) {
     if (m.t === 'chal') {
       if (pd.block) {
         const b = P(r, pd.block.by);
-        challenge(r, b, pd.block.char, p, () => end(r), () => { pd.block = null; pd.nc = true; if (db.cfg.rules.blockFail) end(r); else resolve(r); });
+        challenge(r, b, pd.block.char, p, () => end(r), () => { pd.block = null; pd.nc = true; resolve(r); });
         return true;
       }
       if (ACT[pd.a].claim && !pd.nc) {
@@ -579,13 +592,27 @@ function botTick(r) {
   if (did) send(r);
 }
 
+// 1x1: cada jogador escolhe 1 carta e a outra é sorteada; sobram 3 cartas no baralho
+function startDuel(r) {
+  r.phase = 'pick'; r.picks = {}; r.winner = null; r.log = []; r.say = null; r.reveal = null; r.fx = null; r.deck = [];
+  r.players.forEach(p => { p.cards = []; p.alive = true; if (p.bot) r.picks[p.pid] = rnd(CH); });
+  log(r, 'Duelo 1x1: cada jogador escolhe 1 carta'); dealIfReady(r); send(r);
+}
+function dealIfReady(r) {
+  if (!r.players.every(p => r.picks[p.pid])) return;
+  r.copies = 3; r.deck = shuffle([...CH]);
+  r.players.forEach(p => { p.coins = 2; p.alive = true; p.cards = [{ c: r.picks[p.pid], dead: false }, { c: r.deck.pop(), dead: false }]; });
+  r.turn = Math.floor(Math.random() * r.players.length); r.phase = 'action'; r.picks = null;
+  log(r, 'Cada jogador escolheu 1 carta e recebeu 1 sorteada. Sobraram 3 cartas no baralho.');
+}
+
 function view(r, me) {
   const pd = r.pending;
   const el = r.phase === 'react' ? eligible(r).filter(x => !pd.pass.includes(x)) : [];
   const can = r.phase === 'react' && el.includes(me.pid)
     ? { chal: pd.block ? true : !!(ACT[pd.a].claim && !pd.nc), block: canBlock(r, me) ? ACT[pd.a].block : [] } : null;
   return {
-    code: r.code, host: r.host, phase: r.phase, mode: r.mode || 'normal', min: minP(r), me: me.pid, copies: r.copies, deck: r.deck.length, lv: r.lv || 'medio',
+    code: r.code, host: r.host, phase: r.phase, mode: r.mode || 'normal', min: minP(r), me: me.pid, copies: r.copies, deck: r.deck.length, lv: r.lv || 'medio', picked: r.phase === 'pick' ? Object.keys(r.picks || {}) : [],
     winner: r.winner, log: r.log, turn: r.players[r.turn] && r.players[r.turn].pid, say: r.say || null, reveal: r.reveal || null, fx: r.fx || null,
     pd: pd && { actor: pd.actor, a: pd.a, t: pd.t, block: pd.block, wait: el }, can, lose: r.lose,
     xchg: r.xchg && r.xchg.pid === me.pid ? r.xchg : null,
@@ -642,6 +669,7 @@ io.on('connection', s => {
   s.on('start', () => {
     const r = R();
     if (!r || r.phase !== 'lobby' || r.host !== s.data.u.id || r.players.length < minP(r)) return;
+    if (r.mode === 'duelo') { startDuel(r); return; }
     const n = r.players.length; r.copies = copies(n);
     r.deck = shuffle(CH.flatMap(c => Array(r.copies).fill(c)));
     r.players.forEach(p => { p.coins = 2; p.alive = true; p.cards = [{ c: r.deck.pop(), dead: false }, { c: r.deck.pop(), dead: false }]; });
@@ -663,12 +691,25 @@ io.on('connection', s => {
     r.fxk = (r.fxk || 0) + 1; r.fx = { pid: p.pid, id: e.id, k: r.fxk }; send(r);
   });
 
+  s.on('pick', c => {
+    const r = R(), u = s.data.u; if (!r || !u || r.phase !== 'pick' || !CH.includes(c)) return;
+    const p = P(r, u.id); if (!p || r.picks[p.pid]) return;
+    r.picks[p.pid] = c; dealIfReady(r); send(r);
+  });
+
   s.on('move', m => {
     const r = R(); if (!r || !m || !s.data.u) return;
     const p = P(r, s.data.u.id);
     if (p && apply(r, p, m)) send(r);
   });
 });
+
+// Restaura personagens padrão ao iniciar: defina RESET_SKINS=lupin (ids separados por vírgula) no Render
+async function restoreSkins() {
+  const ids = (process.env.RESET_SKINS || '').split(',').map(x => x.trim()).filter(x => SK.some(k => k.id === x));
+  for (const id of ids) { delete db.cfg.sk[id]; delete db.cfg.img[id]; await imgDel(id); }
+  if (ids.length) { save(); console.log('Personagens restaurados: ' + ids.join(', ') + '. Remova RESET_SKINS do Render.'); }
+}
 
 // Recuperação de conta: com RESET_EMAIL e RESET_PASS definidos no Render, a senha dessa conta é redefinida ao iniciar
 function recover() {
@@ -687,5 +728,5 @@ function recover() {
 }
 
 setInterval(() => { for (const k in rooms) if (Date.now() - rooms[k].t > 6 * 3600e3) delete rooms[k]; }, 600e3);
-load().then(() => { recover(); srv.listen(process.env.PORT || 3000, () => console.log('Coup online rodando' + (SBURL ? ' (Supabase)' : ' (arquivo local)'))); })
+load().then(async () => { recover(); await restoreSkins(); srv.listen(process.env.PORT || 3000, () => console.log('Coup online rodando' + (SBURL ? ' (Supabase)' : ' (arquivo local)'))); })
   .catch(e => { console.error('Falha ao carregar o banco:', e.message); process.exit(1); });
