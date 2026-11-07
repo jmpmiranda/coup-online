@@ -19,7 +19,7 @@ const bump = (u, k, r) => {
   activeEvents().forEach(e => {
     if (!e.goal || e.goal.k !== k) return;
     const md = e.mode || 'normal';
-    if (!(md === 'normal' || md === 'dobro' || (r && r.mode === md))) return;
+    if (!(md === 'normal' || md === 'dobro' || (r && r.evId === e.id))) return;
     const q = u.ev[e.id] = u.ev[e.id] || { n: 0, c: false }; if (!q.c) q.n++;
   });
 };
@@ -58,7 +58,7 @@ const profile = u => {
   return {
     id: u.id, email: u.email, name: u.name, code: u.code, coins: u.coins, gems: u.gems, xp: u.xp, passClaimed: u.passClaimed,
     items: isOwner(u) ? emotes().map(e => e.id) : u.items, stats: u.stats, claimed: u.claimed, daily: u.daily, owner: isOwner(u),
-    skins: isOwner(u) ? skins().map(k => k.id) : u.skins, avatar: u.avatar, skin: u.skin, events: db.events.map(e => ({ ...e, active: isActive(e), my: u.ev[e.id] || { n: 0, c: false } })), cat: { skins: skins().filter(k => !k.owner || isOwner(u)), em: emotes() }, rules: isOwner(u) ? db.cfg.rules : null,
+    skins: isOwner(u) ? skins().map(k => k.id) : u.skins, avatar: u.avatar, skin: u.skin, events: db.events.map(e => ({ ...e, active: isActive(e), rl: rulesOf(e), my: u.ev[e.id] || { n: 0, c: false } })), cat: { skins: skins().filter(k => !k.owner || isOwner(u)), em: emotes() }, rules: isOwner(u) ? db.cfg.rules : null,
     friends: u.friends.map(c => db.users[db.codes[c]]).filter(Boolean).map(f => ({ code: f.code, name: f.name, av: avOf(f), on: !!online[f.id] }))
   };
 };
@@ -88,8 +88,14 @@ app.get('/verify', (q, res) => {
 function skins() {
   return SK.map(k => ({ ...k })).concat(db.cskins.map(k => ({ ...k, custom: true }))).map(k => {
     const o = db.cfg.sk[k.id] || {}, iv = db.cfg.img[k.id];
-    return { ...k, c: o.c != null ? o.c : k.c, r: o.r || k.r, owner: o.owner != null ? o.owner : k.owner, hide: !!o.hide, noRaffle: !!o.noRaffle, mod: !k.custom && !!(db.cfg.sk[k.id] || iv), a: iv ? { img: `/img/${k.id}?v=${iv}` } : k.a };
+    return { ...k, n: o.n || k.n, c: o.c != null ? o.c : k.c, r: o.r || k.r, owner: o.owner != null ? o.owner : k.owner, hide: !!o.hide, noRaffle: !!o.noRaffle, mod: !k.custom && !!(db.cfg.sk[k.id] || iv), a: iv ? { img: `/img/${k.id}?v=${iv}` } : k.a };
   });
+}
+function cleanAv(a, all) {
+  const hex = c => /^#[0-9a-f]{6}$/i.test(c), I = (v, n, d) => Number.isInteger(v) && v >= 0 && v < n ? v : d;
+  const xs = ['', 'glasses', 'monocle', 'tophat', 'cap', 'shades'].concat(all ? ['crown', 'patch', 'hat', 'mask', 'cowboy'] : []);
+  return { h: I(a.h, 9, 1), b: I(a.b, 4, 0), cl: I(a.cl, 4, 0), hc: hex(a.hc) ? a.hc : '#3b2a1a', oc: hex(a.oc) ? a.oc : '#2574a9',
+    skin: hex(a.skin) ? a.skin : '#f5cfa7', e: hex(a.e) ? a.e : '#4a6a8a', x: xs.includes(a.x) ? a.x : '' };
 }
 function emotes() { return EM.concat(db.cemotes.map(e => ({ ...e, custom: true }))).map(e => ({ ...e, c: db.cfg.em[e.id] && db.cfg.em[e.id].c != null ? db.cfg.em[e.id].c : e.c })); }
 const adm = u => { if (!isOwner(u)) throw new Error('Só o dono do app pode fazer isso.'); };
@@ -199,10 +205,7 @@ async function api(s, m) {
       if (!u.friends.includes(f.code)) { u.friends.push(f.code); f.friends.push(u.code); } break;
     }
     case 'avatar': {
-      const a = m.a || {}, hex = c => /^#[0-9a-f]{6}$/i.test(c), I = (v, n, d) => Number.isInteger(v) && v >= 0 && v < n ? v : d;
-      u.avatar = { h: I(a.h, 6, 1), b: I(a.b, 4, 0), cl: I(a.cl, 4, 0), hc: hex(a.hc) ? a.hc : '#3b2a1a', oc: hex(a.oc) ? a.oc : '#2574a9',
-        skin: hex(a.skin) ? a.skin : '#f5cfa7', e: hex(a.e) ? a.e : '#4a6a8a', x: ['', 'glasses', 'monocle', 'tophat', 'cap', 'shades'].includes(a.x) ? a.x : '' };
-      u.skin = null; break;
+      u.avatar = cleanAv(m.a || {}, false); u.skin = null; break;
     }
     case 'skin': {
       if (m.id) { const k = skins().find(x => x.id === m.id); if (!k || !owned(u, k)) throw new Error('Personagem bloqueado.'); }
@@ -241,11 +244,11 @@ async function api(s, m) {
       adm(u);
       const t = String(m.title || '').trim().slice(0, 60), x = String(m.text || '').trim().slice(0, 400);
       if (!t) throw new Error('Digite um título.');
-      const mode = ['normal', 'duelo', 'mesa_cheia', 'dobro'].includes(m.mode) ? m.mode : 'normal';
+      const mode = ['normal', 'dobro', 'regras'].includes(m.mode) ? m.mode : 'normal';
       const goal = ['wins', 'games', 'chal', 'blk', 'coup'].includes(m.goalK) ? { k: m.goalK, n: Math.max(1, Math.min(1000, m.goalN | 0 || 1)) } : null;
       const dt = v => /^\d{4}-\d{2}-\d{2}$/.test(v || '') ? v : '', num = v => Math.max(0, Math.min(100000, v | 0));
       const prize = { coins: num(m.coins), gems: num(m.gems), xp: num(m.xp), skin: skins().some(k => k.id === m.skin && !k.owner) ? m.skin : '' };
-      db.events.unshift({ id: crypto.randomBytes(4).toString('hex'), title: t, text: x, mode, goal, start: dt(m.start), end: dt(m.end), prize, at: day() });
+      db.events.unshift({ id: crypto.randomBytes(4).toString('hex'), title: t, text: x, mode, rules: mode === 'regras' ? cleanRules(m.rules) : null, goal, start: dt(m.start), end: dt(m.end), prize, at: day() });
       db.events = db.events.slice(0, 30); break;
     }
     case 'evdel': { adm(u); db.events = db.events.filter(e => e.id !== m.id); break; }
@@ -265,6 +268,7 @@ async function api(s, m) {
       adm(u); const k = skins().find(x => x.id === m.id); if (!k) throw new Error('Personagem não encontrado.');
       const o = db.cfg.sk[k.id] = db.cfg.sk[k.id] || {};
       if (m.c != null) o.c = Math.max(0, Math.min(100000, m.c | 0));
+      if (m.n != null) { const nn = String(m.n).trim().slice(0, 24); if (nn && nn !== (SK.find(x => x.id === k.id) || db.cskins.find(x => x.id === k.id) || {}).n) o.n = nn; else delete o.n; }
       if (['comum', 'raro', 'épico', 'lendário', 'mítico', 'exclusivo'].includes(m.r)) o.r = m.r;
       if (m.owner != null) o.owner = !!m.owner;
       o.hide = !!m.hide; o.noRaffle = !!m.noRaffle; break;
@@ -279,11 +283,11 @@ async function api(s, m) {
     case 'adm_addskin': {
       adm(u);
       const n = String(m.n || '').trim().slice(0, 24); if (!n) throw new Error('Digite o nome do personagem.');
-      const v = imgOk(m.img), id = 'c' + crypto.randomBytes(4).toString('hex');
+      const id = 'c' + crypto.randomBytes(4).toString('hex'), v = m.av ? null : imgOk(m.img);
       const r = m.owner ? 'exclusivo' : (['comum', 'raro', 'épico', 'lendário', 'mítico'].includes(m.r) ? m.r : 'raro');
-      await imgPut(id, v);
-      db.cskins.push({ id, n, r, c: m.owner ? 0 : Math.max(0, Math.min(100000, m.c | 0)), owner: !!m.owner });
-      db.cfg.img[id] = Date.now(); if (m.noRaffle) db.cfg.sk[id] = { noRaffle: true }; break;
+      if (v) await imgPut(id, v);
+      db.cskins.push({ id, n, r, c: m.owner ? 0 : Math.max(0, Math.min(100000, m.c | 0)), owner: !!m.owner, a: m.av ? cleanAv(m.av, true) : undefined });
+      if (v) db.cfg.img[id] = Date.now(); if (m.noRaffle) db.cfg.sk[id] = { noRaffle: true }; break;
     }
     case 'adm_img': {
       adm(u); const k = skins().find(x => x.id === m.id); if (!k) throw new Error('Personagem não encontrado.');
@@ -316,27 +320,29 @@ async function api(s, m) {
 }
 
 /* ---------- Jogo ---------- */
-const CH = ['duke', 'assassin', 'captain', 'ambassador', 'contessa'];
-const N = { duke: 'Duque', assassin: 'Assassino', captain: 'Capitão', ambassador: 'Embaixador', contessa: 'Condessa' };
-const AR = { duke: 'o Duque', assassin: 'o Assassino', captain: 'o Capitão', ambassador: 'o Embaixador', contessa: 'a Condessa' };
+const CH = ['duke', 'assassin', 'captain', 'ambassador', 'contessa', 'jester', 'bureaucrat'];
+const BASE = CH.slice(0, 5);
+const N = { duke: 'Duque', assassin: 'Assassino', captain: 'Capitão', ambassador: 'Embaixador', contessa: 'Condessa', jester: 'Bufão', bureaucrat: 'Burocrata' };
+const AR = { duke: 'o Duque', assassin: 'o Assassino', captain: 'o Capitão', ambassador: 'o Embaixador', contessa: 'a Condessa', jester: 'o Bufão', bureaucrat: 'o Burocrata' };
 const CAP = {
   income: a => `${a} pegou renda`, aid: a => `${a} pediu ajuda externa`, coup: (a, t) => `${a} deu um golpe em ${t}`,
   tax: a => `${a} cobrou impostos (Duque)`, assassinate: (a, t) => `${a} tentou assassinar ${t}`,
-  steal: (a, t) => `${a} extorquiu ${t}`, exchange: a => `${a} trocou cartas (Embaixador)`
+  steal: (a, t) => `${a} extorquiu ${t}`, exchange: a => `${a} trocou cartas (Embaixador)`,
+  coop: (a, t) => `${a} cooperou com ${t} (Burocrata)`, disorder: (a, t) => `${a} causou desordem em ${t} (Bufão)`
 };
 const SAY = {
   income: () => 'Vou pegar a renda.', aid: () => 'Quero a ajuda externa.', coup: t => `Vou dar um golpe em ${t}!`,
-  tax: () => 'Vou cobrar impostos!', assassinate: t => `Vou assassinar ${t}!`, steal: t => `Vou extorquir ${t}!`, exchange: () => 'Vou trocar cartas.'
+  tax: () => 'Vou cobrar impostos!', assassinate: t => `Vou assassinar ${t}!`, steal: t => `Vou extorquir ${t}!`, exchange: () => 'Vou trocar cartas.',
+  coop: t => `Vou pegar moedas e dar 1 para ${t}!`, disorder: t => `Vou causar desordem em ${t}!`
 };
 const ACT = {
-  income: {}, aid: { block: ['duke'] }, coup: { cost: 7, target: 1 }, tax: { claim: 'duke' },
-  assassinate: { cost: 3, claim: 'assassin', target: 1, block: ['contessa'] },
-  steal: { claim: 'captain', target: 1, block: ['captain', 'ambassador'] }, exchange: { claim: 'ambassador' }
+  income: {}, aid: {}, coup: { target: 1 }, tax: { claim: 'duke' }, assassinate: { claim: 'assassin', target: 1 },
+  steal: { claim: 'captain', target: 1 }, exchange: { claim: 'ambassador' }, coop: { claim: 'bureaucrat', target: 1 }, disorder: { claim: 'jester', target: 1 }
 };
+const BLK = { aid: ['duke', 'bureaucrat'], assassinate: ['contessa'], steal: ['captain', 'ambassador', 'jester'], disorder: ['jester'] };
+const PRI = { assassin: 5, duke: 4, captain: 3, bureaucrat: 3, contessa: 2, jester: 2, ambassador: 1 };
 const BN = ['Ana', 'Beto', 'Cacá', 'Duda', 'Edu', 'Fê', 'Gui', 'Lia', 'Nando'];
 const rooms = {};
-const minP = r => r.mode === 'duelo' ? 2 : r.mode === 'mesa_cheia' ? 6 : Math.max(2, db.cfg.rules.minPlayers | 0 || 3);
-const maxP = r => r.mode === 'duelo' ? 2 : 10;
 const rnd = a => a[Math.floor(Math.random() * a.length)];
 const copies = n => Math.round((2 * n + 7) / 5);
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -346,6 +352,40 @@ const alive = r => r.players.filter(p => p.alive);
 const log = (r, t) => { r.log.push(t); if (r.log.length > 40) r.log.shift(); };
 // pausa o jogo por alguns segundos para dar tempo de ler o que aconteceu
 const wait = (r, ms, fn) => { r.phase = 'wait'; setTimeout(() => { fn(); send(r); }, ms); };
+
+/* ---------- Regras (padrão e de eventos) ---------- */
+const OFFA = ['aid', 'tax', 'assassinate', 'steal', 'exchange', 'coop', 'disorder'];
+const PRESETS = {
+  duelo: { chars: { duke: 1, assassin: 1, captain: 1, ambassador: 1, contessa: 1 }, hand: 2, pick: 1, first: true, min: 2, max: 2 },
+  mesa_cheia: { min: 6, max: 10 }
+};
+function cleanRules(x) {
+  x = x || {};
+  const n = (v, a, b, d) => { v = Number(v); return Number.isFinite(v) ? Math.max(a, Math.min(b, Math.round(v))) : d; };
+  const chars = {}; let any = false;
+  for (const c of CH) { const k = n(x.chars && x.chars[c], 0, 6, 0); if (k > 0) { chars[c] = k; any = true; } }
+  const hand = n(x.hand, 1, 4, 2);
+  return {
+    chars: any ? chars : null, hand, coins: n(x.coins, 0, 20, 2), pick: Math.min(hand, n(x.pick, 0, 3, 0)),
+    coup: n(x.coup, 1, 20, 7), force: n(x.force, 3, 30, 10), assassinate: n(x.assassinate, 1, 20, 3),
+    income: n(x.income, 1, 10, 1), aid: n(x.aid, 1, 10, 2), tax: n(x.tax, 1, 10, 3), steal: n(x.steal, 1, 10, 2), coop: n(x.coop, 2, 10, 3),
+    off: (Array.isArray(x.off) ? x.off : []).filter(a => OFFA.includes(a)), first: !!x.first, min: n(x.min, 0, 10, 0), max: n(x.max, 0, 10, 0)
+  };
+}
+const rulesOf = e => e.rules ? cleanRules(e.rules) : PRESETS[e.mode] ? cleanRules(PRESETS[e.mode]) : null;
+const minP = r => r.R.min || Math.max(2, db.cfg.rules.minPlayers | 0 || 3);
+const maxP = r => r.R.max || 10;
+const charsOf = r => r.R.chars || Object.fromEntries(BASE.map(c => [c, 1]));
+const costOf = (r, a) => a === 'coup' ? r.R.coup : a === 'assassinate' ? r.R.assassinate : 0;
+function allowedActs(r) {
+  const ch = charsOf(r), off = r.R.off;
+  return ['income', 'aid', 'coup', 'tax', 'assassinate', 'steal', 'exchange', 'coop', 'disorder'].filter(a => {
+    if (a === 'income' || a === 'coup') return true;
+    if (off.includes(a)) return false;
+    const cl = ACT[a].claim; return !cl || ch[cl] > 0;
+  });
+}
+const blockers = (r, a) => (BLK[a] || []).filter(c => charsOf(r)[c] > 0);
 
 function addBot(r) {
   const used = r.players.map(p => p.name), nm = BN.find(n => !used.includes('Bot ' + n)) || 'X';
@@ -381,7 +421,7 @@ function challenge(r, claimer, ch, challenger, won, lost) {
     wait(r, 4000, () => { r.reveal = null; if (has) lose(r, challenger.pid, won); else lose(r, claimer.pid, lost); });
   });
 }
-function canBlock(r, p) { const pd = r.pending, d = ACT[pd.a]; return !pd.block && !!d.block && (pd.a === 'aid' || pd.t === p.pid); }
+function canBlock(r, p) { const pd = r.pending; return !pd.block && blockers(r, pd.a).length > 0 && (pd.a === 'aid' || pd.t === p.pid); }
 function eligible(r) {
   const pd = r.pending, d = ACT[pd.a];
   if (pd.block) return alive(r).filter(p => p.pid !== pd.block.by).map(p => p.pid);
@@ -389,8 +429,9 @@ function eligible(r) {
 }
 function act(r, p, a, t) {
   const d = ACT[a];
+  r.moves = (r.moves || 0) + 1;
   r.pending = { actor: p.pid, a, t: t ? t.pid : null, pass: [], block: null, nc: false };
-  p.coins -= d.cost || 0;
+  p.coins -= costOf(r, a);
   if (a === 'coup') { const cu = db.users[p.pid]; if (cu) { bump(cu, 'coup', r); save(); } }
   r.say = { pid: p.pid, text: (d.claim ? `Sou ${AR[d.claim]}. ` : '') + SAY[a](t && t.name) };
   log(r, CAP[a](p.name, t && t.name));
@@ -398,7 +439,7 @@ function act(r, p, a, t) {
 }
 function react(r) {
   const pd = r.pending, d = ACT[pd.a];
-  if (!pd.block && !d.claim && !d.block) return resolve(r);
+  if (!pd.block && !d.claim && !blockers(r, pd.a).length) return resolve(r);
   if (!eligible(r).length) return done(r);
   r.phase = 'react';
 }
@@ -408,25 +449,35 @@ function done(r) {
   resolve(r);
 }
 function resolve(r) {
-  const pd = r.pending, p = P(r, pd.actor), t = pd.t && P(r, pd.t);
+  const pd = r.pending, p = P(r, pd.actor), t = pd.t && P(r, pd.t), R = r.R;
   r.phase = null;
   switch (pd.a) {
-    case 'income': p.coins += 1; break;
-    case 'aid': p.coins += 2; break;
-    case 'tax': p.coins += 3; log(r, `${p.name} recebeu 3 moedas`); break;
-    case 'steal': if (t && t.alive) { const n = Math.min(2, t.coins); t.coins -= n; p.coins += n; log(r, `${p.name} levou ${n} moeda(s) de ${t.name}`); } break;
+    case 'income': p.coins += R.income; break;
+    case 'aid': p.coins += R.aid; break;
+    case 'tax': p.coins += R.tax; log(r, `${p.name} recebeu ${R.tax} moedas`); break;
+    case 'steal': if (t && t.alive) { const n = Math.min(R.steal, t.coins); t.coins -= n; p.coins += n; log(r, `${p.name} levou ${n} moeda(s) de ${t.name}`); } break;
+    case 'coop':
+      p.coins += R.coop - 1; if (t && t.alive) t.coins += 1; else p.coins += 1;
+      log(r, `${p.name} pegou ${R.coop} moedas e deu 1 para ${t.name}`); break;
     case 'coup': case 'assassinate': return lose(r, t.pid, () => end(r));
     case 'exchange': {
       const pool = live(p).map(c => c.c).concat(r.deck.splice(-2));
-      r.xchg = { pid: p.pid, pool, keep: live(p).length }; r.phase = 'exchange'; return;
+      r.xchg = { pid: p.pid, pool, keep: live(p).length, j: null }; r.phase = 'exchange'; return;
+    }
+    case 'disorder': {
+      if (!t || !t.alive || !live(t).length) break;
+      const idx = rnd(t.cards.map((c, i) => i).filter(i => !t.cards[i].dead)), taken = t.cards[idx].c;
+      const dc = r.deck.length ? r.deck.pop() : null;
+      r.xchg = { pid: p.pid, pool: live(p).map(c => c.c).concat(dc ? [dc, taken] : [taken]), keep: live(p).length, j: { t: t.pid, idx } };
+      r.phase = 'exchange'; return;
     }
   }
   end(r);
 }
 function award(r) {
+  const mult = activeEvents().some(e => e.mode === 'dobro') ? 2 : 1;
   r.players.forEach(p => {
     const u = db.users[p.pid]; if (!u) return;
-    const mult = activeEvents().some(e => e.mode === 'dobro') ? 2 : 1;
     bump(u, 'games', r); u.coins += 10 * mult;
     if (p.pid === r.winner) { bump(u, 'wins', r); u.coins += 30 * mult; }
   });
@@ -442,13 +493,43 @@ function end(r) {
   });
 }
 
+/* ---------- Início do jogo ---------- */
+function startGame(r) {
+  const n = r.players.length, R0 = r.R0;
+  const chars = R0.chars || Object.fromEntries(BASE.map(c => [c, copies(n)]));
+  const total = Object.values(chars).reduce((a, b) => a + b, 0);
+  if (total < n * (R0.hand - R0.pick) + 1) return 'Poucas cartas no baralho para esse número de jogadores.';
+  r.R = { ...R0, chars }; r.copies = Math.max(...Object.values(chars)); r.moves = 0;
+  r.winner = null; r.log = []; r.say = null; r.reveal = null; r.fx = null; r.pending = null; r.deck = [];
+  r.players.forEach(p => { p.cards = []; p.alive = true; p.coins = r.R.coins; });
+  if (r.R.pick > 0) {
+    r.phase = 'pick'; r.picks = {};
+    r.players.forEach(p => { r.picks[p.pid] = []; if (p.bot) for (let i = 0; i < r.R.pick; i++) r.picks[p.pid].push(rnd(Object.keys(chars))); });
+    log(r, `Cada jogador escolhe ${r.R.pick} carta(s)`); dealIfReady(r); return null;
+  }
+  dealCards(r); return null;
+}
+function dealCards(r) {
+  const R = r.R;
+  r.deck = shuffle(CH.flatMap(c => Array(R.chars[c] || 0).fill(c)));
+  r.players.forEach(p => {
+    p.cards = ((r.picks && r.picks[p.pid]) || []).map(c => ({ c, dead: false }));
+    while (p.cards.length < R.hand) p.cards.push({ c: r.deck.pop(), dead: false });
+    p.coins = R.coins; p.alive = true;
+  });
+  r.picks = null; r.turn = Math.floor(Math.random() * r.players.length); r.phase = 'action'; r.moves = 0;
+  log(r, `O jogo começou: ${R.hand} carta(s) por jogador e ${r.deck.length} no baralho.`);
+}
+function dealIfReady(r) { if (r.players.every(p => (r.picks[p.pid] || []).length >= r.R.pick)) dealCards(r); }
+
 function apply(r, p, m) {
   if (!p.alive) return false;
-  const pd = r.pending;
+  const pd = r.pending, R = r.R;
   if (m.t === 'act' && r.phase === 'action' && r.players[r.turn] === p) {
-    const d = ACT[m.a]; if (!d) return false;
-    if (p.coins >= 10 && m.a !== 'coup') return false;
-    if (p.coins < (d.cost || 0)) return false;
+    const d = ACT[m.a]; if (!d || !allowedActs(r).includes(m.a)) return false;
+    if (R.first && !r.moves && m.a !== 'income') return false;
+    if (p.coins >= R.force && m.a !== 'coup') return false;
+    if (p.coins < costOf(r, m.a)) return false;
     let t = null;
     if (d.target) { t = P(r, m.target); if (!t || !t.alive || t === p) return false; }
     act(r, p, m.a, t); return true;
@@ -470,12 +551,12 @@ function apply(r, p, m) {
         const a = P(r, pd.actor);
         challenge(r, a, ACT[pd.a].claim, p,
           () => { pd.nc = true; pd.pass = []; react(r); },
-          () => { a.coins += ACT[pd.a].cost || 0; end(r); });
+          () => { a.coins += costOf(r, pd.a); end(r); });
         return true;
       }
       return false;
     }
-    if (m.t === 'block' && canBlock(r, p) && ACT[pd.a].block.includes(m.ch)) {
+    if (m.t === 'block' && canBlock(r, p) && blockers(r, pd.a).includes(m.ch)) {
       pd.block = { by: p.pid, char: m.ch };
       pd.pass = [];
       const bu = db.users[p.pid]; if (bu) { bump(bu, 'blk', r); save(); }
@@ -492,48 +573,48 @@ function apply(r, p, m) {
   if (r.phase === 'exchange' && r.xchg && r.xchg.pid === p.pid && m.t === 'xchg') {
     const x = r.xchg, k = m.k;
     if (!Array.isArray(k) || k.length !== x.keep || new Set(k).size !== k.length || k.some(i => !(i >= 0 && i < x.pool.length))) return false;
-    const kept = k.map(i => x.pool[i]);
-    x.pool.forEach((c, i) => { if (!k.includes(i)) r.deck.push(c); }); shuffle(r.deck);
-    let j = 0; p.cards.forEach(c => { if (!c.dead) c.c = kept[j++]; });
-    r.xchg = null; log(r, `${p.name} trocou cartas`); end(r); return true;
+    const left = x.pool.map((c, i) => i).filter(i => !k.includes(i));
+    if (x.j && !left.includes(m.g)) return false;
+    const kept = k.map(i => x.pool[i]); let j = 0;
+    p.cards.forEach(c => { if (!c.dead) c.c = kept[j++]; });
+    if (x.j) {
+      const tp = P(r, x.j.t), slot = tp && tp.cards[x.j.idx]; if (slot && !slot.dead) slot.c = x.pool[m.g];
+      left.filter(i => i !== m.g).forEach(i => r.deck.push(x.pool[i]));
+      log(r, `${p.name} fez a troca da desordem`);
+    } else { left.forEach(i => r.deck.push(x.pool[i])); log(r, `${p.name} trocou cartas`); }
+    shuffle(r.deck); r.xchg = null; end(r); return true;
   }
   return false;
 }
 
 /* ---------- Bots (fácil, médio, difícil) ---------- */
-const PRI = { assassin: 5, duke: 4, captain: 3, contessa: 2, ambassador: 1 };
 function unknownLeft(r, b, ch) {
   let seen = live(b).filter(c => c.c === ch).length;
   r.players.forEach(p => p.cards.forEach(c => { if (c.dead && c.c === ch) seen++; }));
-  return Math.max(0, r.copies - seen);
+  return Math.max(0, (r.R.chars[ch] || 0) + r.R.pick * r.players.length - seen);
 }
 function botAction(r, cur) {
-  const lv = cur.lv || 'medio', others = alive(r).filter(p => p !== cur), any = rnd(others);
-  const rich = [...others].sort((a, b) => b.coins - a.coins)[0];
+  const R = r.R, lv = cur.lv || 'medio', others = alive(r).filter(p => p !== cur), any = rnd(others);
   const weak = [...others].sort((a, b) => live(a).length - live(b).length || b.coins - a.coins)[0];
+  const rich = [...others].sort((a, b) => b.coins - a.coins)[0], poor = [...others].sort((a, b) => a.coins - b.coins)[0];
+  if (R.first && !r.moves) return { a: 'income', target: any.pid };
+  if (cur.coins >= R.force) return { a: 'coup', target: (lv === 'dificil' ? weak : any).pid };
   const has = ch => live(cur).some(c => c.c === ch);
-  if (cur.coins >= 10) return { a: 'coup', target: (lv === 'dificil' ? weak : any).pid };
-  if (lv === 'facil') {
-    if (cur.coins >= 7 && Math.random() < .3) return { a: 'coup', target: any.pid };
-    return { a: rnd(['income', 'aid', 'tax', 'steal', 'exchange']), target: any.pid };
+  if (cur.coins >= R.coup && (lv === 'dificil' || (lv === 'medio' && Math.random() < .6) || (lv === 'facil' && Math.random() < .3)))
+    return { a: 'coup', target: (lv === 'dificil' ? weak : any).pid };
+  const ok = allowedActs(r).filter(a => a !== 'coup' && cur.coins >= costOf(r, a) && !(a === 'steal' && !others.some(o => o.coins > 0)));
+  let pool = ok.length ? ok : ['income'];
+  if (lv === 'dificil') {
+    pool = []; ok.forEach(a => { const cl = ACT[a].claim, w = !cl ? 1 : has(cl) ? 3 : (Math.random() < .2 ? 1 : 0); for (let i = 0; i < w; i++) pool.push(a); });
+    if (!pool.length) pool = ['income'];
   }
-  if (lv === 'medio') {
-    const opts = ['income', 'aid', 'tax', 'steal', 'exchange']; if (cur.coins >= 3) opts.push('assassinate', 'assassinate');
-    return { a: (cur.coins >= 7 && Math.random() < .6) ? 'coup' : rnd(opts), target: any.pid };
-  }
-  if (cur.coins >= 7) return { a: 'coup', target: weak.pid };
-  const opts = ['income'];
-  if (has('duke')) opts.push('tax', 'tax', 'tax');
-  if (has('assassin') && cur.coins >= 3) opts.push('assassinate', 'assassinate', 'assassinate');
-  if (has('captain') && others.some(o => o.coins > 0)) opts.push('steal', 'steal');
-  if (has('ambassador')) opts.push('exchange');
-  if (Math.random() < .22) opts.push(rnd(['tax', 'steal', cur.coins >= 3 ? 'assassinate' : 'aid'])); // blefe ocasional
-  const a = rnd(opts);
-  const t = a === 'steal' ? ([...others].filter(o => o.coins > 0).sort((x, y) => y.coins - x.coins)[0] || rich) : a === 'assassinate' ? weak : any;
+  const a = rnd(pool);
+  const t = a === 'steal' ? ([...others].filter(o => o.coins > 0).sort((x, y) => y.coins - x.coins)[0] || rich)
+    : (a === 'assassinate' || a === 'disorder') ? (lv === 'dificil' ? weak : any) : a === 'coop' ? (lv === 'dificil' ? poor : any) : any;
   return { a, target: t.pid };
 }
 function reactChoice(r, b) {
-  const lv = b.lv || 'medio', pd = r.pending, d = ACT[pd.a], has = ch => live(b).some(x => x.c === ch), R = Math.random;
+  const lv = b.lv || 'medio', pd = r.pending, bl = blockers(r, pd.a), has = ch => live(b).some(x => x.c === ch), R = Math.random;
   if (pd.block) {
     if (lv === 'facil') return { t: 'pass' };
     if (lv === 'medio') return R() < .2 ? { t: 'chal' } : { t: 'pass' };
@@ -541,21 +622,22 @@ function reactChoice(r, b) {
     return R() < (left === 0 ? 1 : pd.actor === b.pid ? .45 : .1) ? { t: 'chal' } : { t: 'pass' };
   }
   if (canBlock(r, b)) {
-    const ok = d.block.find(has);
+    const ok = bl.find(has);
     if (lv === 'facil') { if (ok && R() < .5) return { t: 'block', ch: ok }; }
     else if (lv === 'medio') {
       if (ok && R() < .85) return { t: 'block', ch: ok };
-      if (!ok && R() < .25) return { t: 'block', ch: d.block[0] };
+      if (!ok && R() < .25) return { t: 'block', ch: bl[0] };
     } else {
       if (ok) return { t: 'block', ch: ok };
-      if (R() < (pd.a === 'assassinate' ? .65 : .3)) return { t: 'block', ch: d.block[0] };
+      if (R() < (pd.a === 'assassinate' ? .65 : .3)) return { t: 'block', ch: bl[0] };
     }
   }
-  if (d.claim && !pd.nc) {
+  const cl = ACT[pd.a].claim;
+  if (cl && !pd.nc) {
     let p;
     if (lv === 'facil') p = .05; else if (lv === 'medio') p = .12;
     else {
-      const left = unknownLeft(r, b, d.claim);
+      const left = unknownLeft(r, b, cl);
       p = left === 0 ? 1 : Math.max(.04, .3 - .1 * left);
       if (pd.t === b.pid) p = Math.min(.9, p + .2);
     }
@@ -570,7 +652,7 @@ function botLose(b) {
 }
 function botTick(r) {
   r.bt = false;
-  if (!r.phase || r.phase === 'lobby' || r.phase === 'over' || r.phase === 'wait') return;
+  if (!r.phase || ['lobby', 'over', 'wait', 'pick'].includes(r.phase)) return;
   let did = false;
   const pd = r.pending, cur = r.players[r.turn];
   if (r.phase === 'action' && cur.bot && cur.alive) {
@@ -584,38 +666,33 @@ function botTick(r) {
   } else if (r.phase === 'exchange' && r.xchg) {
     const b = P(r, r.xchg.pid);
     if (b && b.bot) {
-      const pool = r.xchg.pool.map((c, i) => i), keep = r.xchg.keep;
-      const k = b.lv === 'dificil' ? pool.sort((x, y) => PRI[r.xchg.pool[y]] - PRI[r.xchg.pool[x]]).slice(0, keep) : shuffle(pool).slice(0, keep);
-      did = apply(r, b, { t: 'xchg', k });
+      const x = r.xchg, idx = x.pool.map((c, i) => i);
+      const k = b.lv === 'dificil' ? idx.slice().sort((a, c) => PRI[x.pool[c]] - PRI[x.pool[a]]).slice(0, x.keep) : shuffle(idx.slice()).slice(0, x.keep);
+      const left = idx.filter(i => !k.includes(i)), m = { t: 'xchg', k };
+      if (x.j) m.g = b.lv === 'dificil' ? left.sort((a, c) => PRI[x.pool[a]] - PRI[x.pool[c]])[0] : rnd(left);
+      did = apply(r, b, m);
     }
   }
   if (did) send(r);
 }
 
-// 1x1: cada jogador escolhe 1 carta e a outra é sorteada; sobram 3 cartas no baralho
-function startDuel(r) {
-  r.phase = 'pick'; r.picks = {}; r.winner = null; r.log = []; r.say = null; r.reveal = null; r.fx = null; r.deck = [];
-  r.players.forEach(p => { p.cards = []; p.alive = true; if (p.bot) r.picks[p.pid] = rnd(CH); });
-  log(r, 'Duelo 1x1: cada jogador escolhe 1 carta'); dealIfReady(r); send(r);
-}
-function dealIfReady(r) {
-  if (!r.players.every(p => r.picks[p.pid])) return;
-  r.copies = 3; r.deck = shuffle([...CH]);
-  r.players.forEach(p => { p.coins = 2; p.alive = true; p.cards = [{ c: r.picks[p.pid], dead: false }, { c: r.deck.pop(), dead: false }]; });
-  r.turn = Math.floor(Math.random() * r.players.length); r.phase = 'action'; r.picks = null;
-  log(r, 'Cada jogador escolheu 1 carta e recebeu 1 sorteada. Sobraram 3 cartas no baralho.');
-}
-
 function view(r, me) {
-  const pd = r.pending;
+  const pd = r.pending, R = r.R;
   const el = r.phase === 'react' ? eligible(r).filter(x => !pd.pass.includes(x)) : [];
   const can = r.phase === 'react' && el.includes(me.pid)
-    ? { chal: pd.block ? true : !!(ACT[pd.a].claim && !pd.nc), block: canBlock(r, me) ? ACT[pd.a].block : [] } : null;
+    ? { chal: pd.block ? true : !!(ACT[pd.a].claim && !pd.nc), block: canBlock(r, me) ? blockers(r, pd.a) : [] } : null;
   return {
-    code: r.code, host: r.host, phase: r.phase, mode: r.mode || 'normal', min: minP(r), me: me.pid, copies: r.copies, deck: r.deck.length, lv: r.lv || 'medio', picked: r.phase === 'pick' ? Object.keys(r.picks || {}) : [],
+    code: r.code, host: r.host, phase: r.phase, evTitle: r.evTitle || '', min: minP(r), me: me.pid, copies: r.copies, deck: r.deck.length, lv: r.lv || 'medio',
+    picked: r.phase === 'pick' ? r.players.filter(p => r.picks[p.pid].length >= R.pick).map(p => p.pid) : [],
+    myPicks: r.phase === 'pick' ? r.picks[me.pid].length : 0, pickN: R.pick, pickChars: Object.keys(charsOf(r)),
+    rl: {
+      acts: allowedActs(r).map(a => ({ a, cost: costOf(r, a) })), hand: R.hand, coins: R.coins, pick: R.pick, coup: R.coup, force: R.force,
+      income: R.income, aid: R.aid, tax: R.tax, steal: R.steal, assassinate: R.assassinate, coop: R.coop,
+      first: !!(R.first && !r.moves), firstRule: R.first, chars: R.chars, off: R.off
+    },
     winner: r.winner, log: r.log, turn: r.players[r.turn] && r.players[r.turn].pid, say: r.say || null, reveal: r.reveal || null, fx: r.fx || null,
     pd: pd && { actor: pd.actor, a: pd.a, t: pd.t, block: pd.block, wait: el }, can, lose: r.lose,
-    xchg: r.xchg && r.xchg.pid === me.pid ? r.xchg : null,
+    xchg: r.xchg && r.xchg.pid === me.pid ? { pool: r.xchg.pool, keep: r.xchg.keep, j: !!r.xchg.j } : null,
     players: r.players.map(p => ({
       pid: p.pid, name: p.name, bot: !!p.bot, av: p.av, coins: p.coins, alive: p.alive,
       cards: p.cards.map(c => ({ dead: c.dead, c: (c.dead || p === me) ? c.c : null }))
@@ -634,12 +711,15 @@ io.on('connection', s => {
   s.on('api', async (m, cb) => { try { cb(await api(s, m || {})); } catch (e) { cb({ err: e.message }); } });
   s.on('disconnect', () => { const u = s.data.u; if (u && online[u.id] === s.id) delete online[u.id]; });
 
-  s.on('join', ({ code, create, bots, lv, friends, mode } = {}) => {
+  s.on('join', ({ code, create, bots, lv, friends, ev } = {}) => {
     const u = s.data.u; if (!u) return;
     let r;
     if (create) {
       do { code = Math.random().toString(36).slice(2, 6).toUpperCase(); } while (rooms[code]);
-      r = rooms[code] = { code, players: [], host: u.id, phase: 'lobby', log: [], deck: [], t: Date.now(), lv: ['facil', 'medio', 'dificil'].includes(lv) ? lv : 'medio', mode: ['duelo', 'mesa_cheia'].includes(mode) && activeEvents().some(e => e.mode === mode) ? mode : 'normal' };
+      let R0 = cleanRules({}), evId = null, evTitle = '';
+      if (ev) { const e = activeEvents().find(x => x.id === ev), rr = e && rulesOf(e); if (rr) { R0 = rr; evId = e.id; evTitle = e.title; } }
+      r = rooms[code] = { code, players: [], host: u.id, phase: 'lobby', log: [], deck: [], t: Date.now(), moves: 0,
+        lv: ['facil', 'medio', 'dificil'].includes(lv) ? lv : 'medio', R0, R: { ...R0 }, evId, evTitle };
       if (friends) u.friends.forEach(c => { const f = db.users[db.codes[c]]; if (f && online[f.id]) io.to(online[f.id]).emit('invite', { from: u.name, room: code }); });
     } else { code = String(code || '').trim().toUpperCase(); r = rooms[code]; }
     if (!r) return s.emit('err', 'Sala não encontrada.');
@@ -669,18 +749,14 @@ io.on('connection', s => {
   s.on('start', () => {
     const r = R();
     if (!r || r.phase !== 'lobby' || r.host !== s.data.u.id || r.players.length < minP(r)) return;
-    if (r.mode === 'duelo') { startDuel(r); return; }
-    const n = r.players.length; r.copies = copies(n);
-    r.deck = shuffle(CH.flatMap(c => Array(r.copies).fill(c)));
-    r.players.forEach(p => { p.coins = 2; p.alive = true; p.cards = [{ c: r.deck.pop(), dead: false }, { c: r.deck.pop(), dead: false }]; });
-    r.turn = Math.floor(Math.random() * n); r.phase = 'action'; r.winner = null; r.log = []; r.say = null; r.reveal = null; r.fx = null;
-    log(r, `O jogo começou com ${n * 2 + r.deck.length} cartas (${r.copies} de cada)`); send(r);
+    const err = startGame(r); if (err) return s.emit('err', err);
+    send(r);
   });
 
   s.on('again', () => {
     const r = R();
     if (!r || r.phase !== 'over' || r.host !== s.data.u.id) return;
-    r.phase = 'lobby'; r.log = []; r.pending = null; r.winner = null; r.say = null; r.reveal = null; r.fx = null; send(r);
+    r.phase = 'lobby'; r.log = []; r.pending = null; r.winner = null; r.say = null; r.reveal = null; r.fx = null; r.picks = null; r.R = { ...r.R0 }; send(r);
   });
 
   s.on('emote', ({ id } = {}) => {
@@ -692,9 +768,10 @@ io.on('connection', s => {
   });
 
   s.on('pick', c => {
-    const r = R(), u = s.data.u; if (!r || !u || r.phase !== 'pick' || !CH.includes(c)) return;
-    const p = P(r, u.id); if (!p || r.picks[p.pid]) return;
-    r.picks[p.pid] = c; dealIfReady(r); send(r);
+    const r = R(), u = s.data.u; if (!r || !u || r.phase !== 'pick' || !r.R.chars || !r.R.chars[c]) return;
+    const p = P(r, u.id); if (!p) return;
+    const a = r.picks[p.pid]; if (a.length >= r.R.pick) return;
+    a.push(c); dealIfReady(r); send(r);
   });
 
   s.on('move', m => {
