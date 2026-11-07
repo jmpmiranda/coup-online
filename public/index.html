@@ -100,16 +100,24 @@ select{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px
 .mv-dance .avi:not(.gen){animation:kSw .6s 6}.mv-shrug .avi:not(.gen){animation:kSh .9s 3}
 .mv-nod .avi:not(.gen){animation:kNd .5s 5}.mv-no .avi:not(.gen){animation:kNo .45s 5}.mv-bow .avi:not(.gen){animation:kBw 1.6s 1}
 @media(prefers-reduced-motion:reduce){.avw *,.avi{animation:none!important}}
+#cap .cap-say{display:flex;align-items:center;gap:10px;text-align:left;justify-content:center}#cap .cap-say+.cap-say{margin-top:6px}
+.seat.speaking{outline:2px solid #fff;background:#ffffff18}
+.stagebox{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;pointer-events:none;text-align:center;background:#0b2a25dd;border-radius:16px;padding:6px 16px 4px}
+.stname{font:700 .95rem Palatino,Georgia,serif;color:var(--brass)}.rig{display:block;margin:0 auto;overflow:visible}
+textarea{font:inherit;border-radius:8px;border:1px solid var(--brass);padding:10px;background:#0d2623;color:var(--ink);width:100%;margin:4px 0}
+details{margin:8px 0}details summary{cursor:pointer}.rn{display:block;margin:6px 0}
 </style></head>
 <body><div id="app"></div>
 <script src="/socket.io/socket.io.js"></script>
 <script src="/shared.js"></script>
 <script>
 const s=io(),$=document.getElementById('app');
-const N={duke:'Duque',assassin:'Assassino',captain:'Capitão',ambassador:'Embaixador',contessa:'Condessa'};
-const A={income:'Renda (+1)',aid:'Ajuda externa (+2)',coup:'Golpe (paga 7)',tax:'Duque: Taxar (+3)',assassinate:'Assassino: Assassinar (paga 3)',steal:'Capitão: Extorquir (+2)',exchange:'Embaixador: Trocar cartas'};
+const N={duke:'Duque',assassin:'Assassino',captain:'Capitão',ambassador:'Embaixador',contessa:'Condessa',jester:'Bufão',bureaucrat:'Burocrata'};
+const A={income:'Renda (+1)',aid:'Ajuda externa (+2)',coup:'Golpe (paga 7)',tax:'Duque: Taxar (+3)',assassinate:'Assassino: Assassinar (paga 3)',steal:'Capitão: Extorquir (+2)',exchange:'Embaixador: Trocar cartas',coop:'Burocrata: Cooperar',disorder:'Bufão: Desordem'};
+const TGT={coup:1,assassinate:1,steal:1,coop:1,disorder:1};
+const lbl=a=>{const r=(st&&st.rl)||{};return({income:`Renda (+${r.income||1})`,aid:`Ajuda externa (+${r.aid||2})`,coup:`Golpe (paga ${r.coup||7})`,tax:`Duque: Taxar (+${r.tax||3})`,assassinate:`Assassino: Assassinar (paga ${r.assassinate||3})`,steal:`Capitão: Extorquir (+${r.steal||2})`,exchange:'Embaixador: Trocar cartas',coop:`Burocrata: Cooperar (+${(r.coop||3)-1}, dá 1)`,disorder:'Bufão: Desordem'})[a]||A[a]};
 const HC=['#111111','#3b2a1a','#6b4423','#a0662d','#d9b44a','#b5442c','#9a9a9a','#e8e8e8'],SKN=['#fde0c8','#f5cfa7','#e8b98a','#d09a68','#b0764a','#8a5530','#5e3a22'],OC=['#2574a9','#2a8a4f','#a8392b','#7b3fa0','#34404c','#d4a94f','#111111','#e8e8e8'],EYE=['#4a6a8a','#3b6b3b','#6b4a2a','#2a2a2a','#7a8a99','#8a5a9a'];
-const OPT={h:['Careca','Curto','Longo','Coque','Cacheado','Topete'],b:['Sem barba','Bigode','Barba','Cavanhaque'],cl:['Camiseta','Camisa','Paletó','Casaca'],x:[['','Nenhum'],['glasses','Óculos'],['monocle','Monóculo'],['tophat','Cartola'],['cap','Boné'],['shades','Escuros']]};
+const OPT={h:['Careca','Curto','Longo','Coque','Cacheado','Topete','Raspado','Ondulado','Entradas'],b:['Sem barba','Bigode','Barba','Cavanhaque'],cl:['Camiseta','Camisa','Paletó','Casaca'],x:[['','Nenhum'],['glasses','Óculos'],['monocle','Monóculo'],['tophat','Cartola'],['cap','Boné'],['shades','Escuros']]};
 const esc=t=>String(t).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
 let me=null,st=null,err='',msg=location.search.includes('ok=1')?'E-mail confirmado! Entre com seu e-mail e senha.':'',mode='in',tgt=null,sel=[],inv=null,scr='home',pm='online',bl='medio',emailKeep='',fxOn=null,fxT=0,lastK=0;
 const api=m=>new Promise(r=>s.emit('api',m,r));
@@ -164,8 +172,8 @@ SP.cavaleiro=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><li
 SP.ninja=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M4 100c3-24 20-32 46-32s43 8 46 32z" fill="#17171d"/><path d="M42 74l8 26 8-26z" fill="#b3262d"/><path d="M43 56h14v16q-7 5-14 0z" fill="#101015"/><ellipse cx="50" cy="42" rx="17.500" ry="21.500" fill="#14141a"/><rect x="33" y="35" width="34" height="11" rx="5" fill="#e0b08a"/><ellipse cx="43" cy="41" rx="3.600" ry="2.200" fill="#fff"/><ellipse cx="57" cy="41" rx="3.600" ry="2.200" fill="#fff"/><circle cx="43" cy="41" r="1.800" fill="#2a2a2a"/><circle cx="57" cy="41" r="1.800" fill="#2a2a2a"/><path d="M37 37l9 3M63 37l-9 3" stroke="#14141a" stroke-width="2"/><rect x="32" y="26" width="36" height="5.500" fill="#b3262d"/><path d="M68 28q8-4 12-1M68 30q8 2 11 8" stroke="#b3262d" stroke-width="3" fill="none"/></svg>`;
 SP.mago=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M4 100c3-24 20-32 46-32s43 8 46 32z" fill="#2f3590"/><path d="M40 70l10 30 10-30" fill="none" stroke="#d4a94f" stroke-width="2"/>${HEAD('#f0cfae','#6f8397','#dcdcdc')}<path d="M33 50q17 46 34 0q-6 9-17 10t-17-10z" fill="#ececec"/><path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="#f6f6f6"/><ellipse cx="50" cy="30" rx="29" ry="6" fill="#262b78"/><path d="M33 29Q45 10 56 0Q58 15 68 29z" fill="#2f3590"/><circle cx="50" cy="18" r="1.600" fill="#f1c40f"/><circle cx="58" cy="24" r="1.200" fill="#f1c40f"/><circle cx="44" cy="25" r="1.200" fill="#f1c40f"/></svg>`;
 SP.vampiro=z=>`<svg width="${z}" height="${z}" viewBox="0 0 100 100"><path d="M2 100c2-34 12-48 24-56l10 26 14 8 14-8 10-26c12 8 22 22 24 56z" fill="#1a0f14"/><path d="M36 70l14 8 14-8-3 14-11 6-11-6z" fill="#7a1220"/>${HEAD('#e6dde8','#c0392b','#15101a')}<path d="M33 40c-1-12 6-17 17-17s18 5 17 17c-3-6-7-9-11-8l-6 5-6-5c-4-1-8 2-11 8z" fill="#15101a"/><path d="M45 60l1.500 5 1.500-5zM52 60l1.500 5 1.500-5z" fill="#fff"/><path d="M44 60q6 3 12 0" stroke="#7a1220" stroke-width="1.400" fill="none"/></svg>`;
-function avCore(a,z=48){
- a=a||{};if(a.img)return `<img class="pimg" src="${esc(a.img)}" width="${z}" height="${z}" alt="">`;if(a.sp)return SP[a.sp](z);
+function avParts(a){
+ a=a||{};
  const sk=a.skin||'#f5cfa7',hc=a.hc||'#3b2a1a',oc=a.oc||'#2574a9',ec=a.e||'#4a6a8a',h=a.h==null?1:a.h,b=a.b||0,cl=a.cl||0,x=a.x||'';
  const dk=shade(sk,-.2),lt=shade(sk,.25),hd=shade(hc,-.35),hl=shade(hc,.3),id='g'+sk.slice(1);
  const sh='<path d="M8 100c2-22 18-30 42-30s40 8 42 30z" fill="';
@@ -178,14 +186,17 @@ function avCore(a,z=48){
  const stra='<path d="M38 24q4 3 6 8M48 22q3 4 3 9M58 23q-2 4-4 8" stroke="'+hd+'" stroke-width=".8" fill="none" opacity=".6"/>';
  const curto='<path d="M33 41c-2-17 6-25 17-25s19 8 17 25c-2-8-5-12-9-14-6 3-16 3-22-1-2 3-2 7-3 15z" fill="'+hc+'"/><path d="M40 22q8-4 17-1" stroke="'+hl+'" fill="none" stroke-width="1.500"/>'+stra;
  const back=h===2?'<path d="M30 46c-3-22 5-32 20-32s23 10 20 32l3 30q-8 6-12 2l-2-24H41l-2 24q-4 4-12-2z" fill="'+hd+'"/>':'';
+ const buzz='<path d="M34 38c-1-14 6-20 16-20s17 6 16 20c-3-5-6-7-9-8-5 2-14 2-18 0-2 1-4 4-5 8z" fill="'+hc+'" opacity=".85"/>';
+ const wavy=curto+'<path d="M33 41c-4 6-3 14-1 18M67 41c4 6 3 14 1 18" stroke="'+hc+'" stroke-width="4" stroke-linecap="round" fill="none"/>';
+ const receding='<path d="M33 42c-1-9 3-14 8-14l4 4 5-5 5 5 4-4c5 0 9 5 8 14-3-6-6-9-10-9H43c-4 0-7 3-10 9z" fill="'+hc+'"/>';
  const front=[ '', curto, curto, curto+'<circle cx="50" cy="12" r="6.500" fill="'+hc+'"/>',
   [36,43,50,57,64].map((c,i)=>`<circle cx="${c}" cy="${i%2?20:23}" r="7.500" fill="${hc}"/><circle cx="${c-2}" cy="${i%2?18:21}" r="2.500" fill="${hl}" opacity=".5"/>`).join('')+'<path d="M33 41c-2-12 3-17 6-18l22 0c4 2 8 7 6 18-3-8-6-11-9-12H42c-4 1-7 4-9 12z" fill="'+hc+'"/>',
-  '<path d="M33 42c-3-20 4-29 18-29 13 0 21 9 16 29-1-9-4-14-8-16-8-4-14 0-20 2-3 3-5 8-6 14z" fill="'+hc+'"/><path d="M37 21q10-9 25-3" stroke="'+hl+'" fill="none" stroke-width="1.600"/>'+stra][h];
+  '<path d="M33 42c-3-20 4-29 18-29 13 0 21 9 16 29-1-9-4-14-8-16-8-4-14 0-20 2-3 3-5 8-6 14z" fill="'+hc+'"/><path d="M37 21q10-9 25-3" stroke="'+hl+'" fill="none" stroke-width="1.600"/>'+stra,buzz,wavy,receding][h];
  const fh=[ '', '<path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="'+hd+'"/>',
   '<path d="M33 49q0 24 17 26 17-2 17-26-3 14-17 15-14-1-17-15z" fill="'+hd+'"/><path d="M42 57q4-3 8-1 4-2 8 1-3 4-8 2-5 2-8-2z" fill="'+hd+'"/>',
   '<path d="M45 62q5 11 10 0-5 3-10 0z" fill="'+hd+'"/><path d="M43 57q3-2 7-1 4-1 7 1-3 3-7 1-4 2-7-1z" fill="'+hd+'"/>'][b];
- return `<svg width="${z}" height="${z}" viewBox="0 0 100 100"><defs><radialGradient id="${id}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="${lt}"/><stop offset="1" stop-color="${sk}"/></radialGradient></defs><g class="av-hb">${back}</g><g class="av-body"><path d="M43 56h14v16q-7 5-14 0z" fill="${dk}"/><path d="M43 58h14v6q-7 4-14 0z" fill="#000" opacity=".14"/>${body}</g><g class="av-head"><ellipse cx="33" cy="45" rx="3" ry="5" fill="${sk}"/><ellipse cx="67" cy="45" rx="3" ry="5" fill="${sk}"/><path d="M33 44q-2 1 0 4M67 44q2 1 0 4" stroke="${dk}" fill="none" stroke-width=".7"/><ellipse cx="50" cy="42" rx="17" ry="21" fill="url(#${id})"/><ellipse cx="50" cy="60" rx="13" ry="7" fill="${dk}" opacity=".16"/><circle cx="38" cy="50" r="4" fill="#e8908a" opacity=".18"/><circle cx="62" cy="50" r="4" fill="#e8908a" opacity=".18"/>${front}<ellipse cx="43" cy="42" rx="3.600" ry="2.400" fill="#fff"/><ellipse cx="57" cy="42" rx="3.600" ry="2.400" fill="#fff"/><circle cx="43" cy="42" r="1.900" fill="${ec}"/><circle cx="57" cy="42" r="1.900" fill="${ec}"/><circle cx="43" cy="42" r=".9" fill="#111"/><circle cx="57" cy="42" r=".9" fill="#111"/><circle cx="43.600" cy="41.300" r=".5" fill="#fff"/><circle cx="57.600" cy="41.300" r=".5" fill="#fff"/><path d="M39 40.200q4-2.600 8 0M53 40.200q4-2.600 8 0" stroke="${dk}" stroke-width=".9" fill="none"/><path d="M38 36.500q5-3 9 0M53 36.500q4-3 9 0" stroke="${hd}" stroke-width="1.800" fill="none" stroke-linecap="round"/><path d="M50 44q-3 8-1 10q2 1 4 0" stroke="${dk}" fill="none" stroke-width="1.300"/><path d="M47 53.500q3 1.600 6 0" stroke="${dk}" fill="none" stroke-width=".9"/>${fh}<path d="M44.500 59.500q2.800-1.800 5.500-.2 2.700-1.600 5.500.2-5.500 2.400-11 0z" fill="#b8665c"/><path d="M45 60q5 4.200 10 0-5 1.600-10 0z" fill="#cf8076"/>${ACC[x]||''}</g></svg>`}
-
+ return {sk,oc,defs:`<defs><radialGradient id="${id}" cx=".4" cy=".35" r=".8"><stop offset="0" stop-color="${lt}"/><stop offset="1" stop-color="${sk}"/></radialGradient></defs>`,back,nb:`<path d="M43 56h14v16q-7 5-14 0z" fill="${dk}"/><path d="M43 58h14v6q-7 4-14 0z" fill="#000" opacity=".14"/>${body}`,head:`<ellipse cx="33" cy="45" rx="3" ry="5" fill="${sk}"/><ellipse cx="67" cy="45" rx="3" ry="5" fill="${sk}"/><path d="M33 44q-2 1 0 4M67 44q2 1 0 4" stroke="${dk}" fill="none" stroke-width=".7"/><ellipse cx="50" cy="42" rx="17" ry="21" fill="url(#${id})"/><ellipse cx="50" cy="60" rx="13" ry="7" fill="${dk}" opacity=".16"/><circle cx="38" cy="50" r="4" fill="#e8908a" opacity=".18"/><circle cx="62" cy="50" r="4" fill="#e8908a" opacity=".18"/>${front}<ellipse cx="43" cy="42" rx="3.600" ry="2.400" fill="#fff"/><ellipse cx="57" cy="42" rx="3.600" ry="2.400" fill="#fff"/><circle cx="43" cy="42" r="1.900" fill="${ec}"/><circle cx="57" cy="42" r="1.900" fill="${ec}"/><circle cx="43" cy="42" r=".9" fill="#111"/><circle cx="57" cy="42" r=".9" fill="#111"/><circle cx="43.600" cy="41.300" r=".5" fill="#fff"/><circle cx="57.600" cy="41.300" r=".5" fill="#fff"/><path d="M39 40.200q4-2.600 8 0M53 40.200q4-2.600 8 0" stroke="${dk}" stroke-width=".9" fill="none"/><path d="M38 36.500q5-3 9 0M53 36.500q4-3 9 0" stroke="${hd}" stroke-width="1.800" fill="none" stroke-linecap="round"/><path d="M50 44q-3 8-1 10q2 1 4 0" stroke="${dk}" fill="none" stroke-width="1.300"/><path d="M47 53.500q3 1.600 6 0" stroke="${dk}" fill="none" stroke-width=".9"/>${fh}<path d="M44.500 59.500q2.800-1.800 5.500-.2 2.700-1.600 5.500.2-5.500 2.400-11 0z" fill="#b8665c"/><path d="M45 60q5 4.200 10 0-5 1.600-10 0z" fill="#cf8076"/>${ACC[x]||''}`}}
+function avCore(a,z=48){a=a||{};if(a.img)return `<img class="pimg" src="${esc(a.img)}" width="${z}" height="${z}" alt="">`;if(a.sp)return SP[a.sp](z);const p=avParts(a);return `<svg width="${z}" height="${z}" viewBox="0 0 100 100">${p.defs}<g class="av-hb">${p.back}</g><g class="av-body">${p.nb}</g><g class="av-head">${p.head}</g></svg>`}
 const SPC={lupin:['#101016','#e0b794'],napoleao:['#1c3366','#e0b794'],cavaleiro:['#9aa5b1','#e8b98a'],ninja:['#17171d','#e0b08a'],mago:['#2f3590','#f0cfae'],vampiro:['#1a0f14','#e6dde8']};
 const ARMS=(oc,sk)=>`<svg class="ov" viewBox="0 0 100 100"><g class="aL" style="transform-origin:28px 90px"><path d="M28 90L41 65" stroke="${oc}" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="41" cy="65" r="5.200" fill="${sk}"/></g><g class="aR" style="transform-origin:72px 90px"><path d="M72 90L59 65" stroke="${oc}" stroke-width="10" stroke-linecap="round" fill="none"/><circle cx="59" cy="65" r="5.200" fill="${sk}"/></g></svg>`;
 function av(a,z=48,arms){
@@ -193,8 +204,91 @@ function av(a,z=48,arms){
  if(arms&&!a.img){const c=a.sp?(SPC[a.sp]||['#333','#e8b98a']):[a.oc||'#2574a9',a.skin||'#f5cfa7'];ov=ARMS(c[0],c[1])}
  return `<span class="avw" style="width:${z}px;height:${z}px"><span class="avi${gen?' gen':''}">${avCore(a,z)}</span>${ov}</span>`}
 
+/* ---------- Corpo articulado (ombros, cotovelos, quadris...) e coreografias ---------- */
+const REST={x:0,y:0,tl:0,hd:0,hy:0,ts:1,sx:1,sh:[6,6],el:[0,0],wr:[0,0],lift:[0,0],hp:[3,3],kn:[0,0]};
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),sm=v=>{v=clamp(v,0,1);return v*v*(3-2*v)},TAU=Math.PI*2;
+const lerp=(a,b,k)=>Array.isArray(a)?a.map((v,i)=>lerp(v,b[i],k)):a+(b-a)*k;
+const lerpP=(A,B,k)=>{const o={};for(const f in A)o[f]=lerp(A[f],B[f],k);return o};
+const sumP=(L,W)=>{const o={};for(const f in REST)o[f]=Array.isArray(REST[f])?REST[f].map((_,i)=>L.reduce((s,p,j)=>s+p[f][i]*W[j],0)):L.reduce((s,p,j)=>s+p[f]*W[j],0);return o};
+const full=p=>({...REST,...p});
+const E=(t,D,r)=>sm(Math.min(t/r,(D-t)/r));
+const win=(t,a,b,r=.4)=>sm((t-a)/r)*sm((b-t)/r);
+const DUR={clap:3.4,dance:6.4,shrug:2.8,wave:3.2,bow:2.8,nod:2.2,no:2.2,jump:2.6,shake:2.6,spin:3.2};
+// convenção: sh/hp positivo = para fora; el/kn positivo = dobrar para dentro (ombro e cotovelo em graus)
+const POSE={
+ clap:t=>{const e=E(t,3.4,.5),w=TAU*3.5*t,c=Math.cos(w),h=Math.sin(w/2);
+  return lerpP(REST,full({y:-.8*Math.abs(h),hd:3*h,tl:1.5*h,sh:[8,8],el:[134+16*c,134+16*c],lift:[.6*(1+c),.6*(1+c)],hp:[8,8],kn:[4,4]}),e)},
+ dance:t=>{const D=6.4,e=E(t,D,.5),b=t*TAU,s=Math.sin(b),c=Math.cos(b),s2=Math.sin(2*b),M=Math.max;
+  const A=full({y:-2.2*Math.abs(s),tl:4*s,hd:-4*s,x:1.5*s,sh:[14+22*M(0,s),14+22*M(0,-s)],el:[35+22*s,35-22*s],lift:[1.5*M(0,s),1.5*M(0,-s)],hp:[10+7*M(0,-c),10+7*M(0,c)],kn:[10,10]});
+  const k=.5+.5*Math.sin(b/2-1.2);
+  const B=full({x:3*s,y:-1.5*Math.abs(c),tl:-6*s,hd:5*s,sh:[lerp(150,25,k),lerp(25,150,k)],el:[lerp(-10,110,k),lerp(110,-10,k)],lift:[1,1],hp:[8+9*M(0,s),8+9*M(0,-s)],kn:[8+6*M(0,-s),8+6*M(0,s)]});
+  const C=full({y:3*s2,x:2*s,tl:3*s,hd:6*s2,sh:[150+20*s2,150-20*s2],el:[25+25*Math.sin(2*b+1),25-25*Math.sin(2*b+1)],lift:[2+2*s2,2-2*s2],hp:[14,14],kn:[18+8*s2,18-8*s2]});
+  const wA=win(t,-1,2.2),wB=win(t,1.8,4.4),wC=win(t,4,D+1),W=wA+wB+wC+1e-6;
+  return lerpP(REST,sumP([A,B,C],[wA/W,wB/W,wC/W]),e)},
+ shrug:t=>{const e=E(t,2.8,.35),bm=.5-.5*Math.cos(TAU*1.4*t);
+  return lerpP(REST,full({tl:2*bm,hd:-7*bm,y:.8*bm,sh:[28,28],el:[-85,-85],lift:[7*bm,7*bm],hp:[6,6],kn:[3,3]}),e)},
+ wave:t=>{const e=E(t,3.2,.5),w=Math.sin(TAU*2.5*t);
+  return lerpP(REST,full({tl:2,hd:-5,sh:[6,100],el:[0,-80+25*w],wr:[0,15*w],lift:[0,1.5],hp:[4,6],kn:[0,2]}),e)},
+ bow:t=>{const bd=sm(Math.min(t/.9,(2.8-t)/.9));
+  return full({hy:7*bd,ts:1-.06*bd,hd:6*bd,y:2*bd,sh:[6+12*bd,6+12*bd],el:[100*bd,100*bd],kn:[6*bd,6*bd],hp:[3+5*bd,3+5*bd]})},
+ nod:t=>{const e=E(t,2.2,.3),n=.5-.5*Math.cos(TAU*1.8*t);
+  return lerpP(REST,full({hy:3.5*n,hd:2*Math.sin(TAU*1.8*t),ts:1-.01*n}),e)},
+ no:t=>{const e=E(t,2.2,.3),r=Math.sin(TAU*1.7*t);
+  return lerpP(REST,full({hd:13*r,tl:-2*r,lift:[1.2*r,-1.2*r]}),e)},
+ jump:t=>{const p=(t%1.3)/1.3;let y;
+  if(p<.2)y=5*sm(p/.2);else if(p<.28)y=5*(1-sm((p-.2)/.08));else if(p<.72)y=-18*Math.sin(Math.PI*(p-.28)/.44);else y=6*Math.sin(Math.PI*(p-.72)/.28);
+  const c=Math.max(0,y)/6,a=Math.max(0,-y)/18;
+  return full({y,hp:[3+14*c,3+14*c],kn:[24*c+8*a,24*c+8*a],sh:[6+120*a,6+120*a],el:[10*a,10*a],hd:-3*a})},
+ shake:t=>{const e=E(t,2.6,.3),r=t*TAU;
+  return lerpP(REST,full({x:Math.sin(r*9),tl:3*Math.sin(r*7),hd:5*Math.sin(r*8),sh:[12,12],el:[110,110],lift:[2+Math.sin(r*11),2+Math.sin(r*13)],hp:[8+3*Math.sin(r*10),8-3*Math.sin(r*10)],kn:[10,10]}),e)},
+ spin:t=>{const e=E(t,3.2,.3),th=TAU*2*sm(t/3.2);
+  return lerpP(REST,full({sx:Math.cos(th),y:-2*Math.abs(Math.sin(th)),sh:[75,75],el:[0,0]}),e)}
+};
+const poseIdle=t=>full({y:.35*Math.sin(t*2.2),ts:1+.004*Math.sin(t*2.2),hd:.8*Math.sin(t*.9)});
+const f2=v=>(+v).toFixed(2);
+function setPose(el,p){
+ const S=(c,v)=>{const n=el.querySelector('.'+c);if(n)n.setAttribute('transform',v)};
+ S('j-root',`translate(${f2(p.x)} ${f2(p.y)}) translate(50 0) scale(${f2(p.sx)} 1) translate(-50 0)`);
+ S('j-torso',`translate(0 88) scale(1 ${f2(p.ts)}) translate(0 -88) rotate(${f2(p.tl)} 50 88)`);
+ S('j-head',`translate(0 ${f2(p.hy)}) rotate(${f2(p.hd)} 50 50)`);
+ S('j-aL',`translate(0 ${f2(-p.lift[0])}) rotate(${f2(p.sh[0])} 36 56)`);S('j-aR',`translate(0 ${f2(-p.lift[1])}) rotate(${f2(-p.sh[1])} 64 56)`);
+ S('j-eL',`rotate(${f2(-p.el[0])} 36 73)`);S('j-eR',`rotate(${f2(p.el[1])} 64 73)`);
+ S('j-wL',`rotate(${f2(-p.wr[0])} 36 89)`);S('j-wR',`rotate(${f2(p.wr[1])} 64 89)`);
+ S('j-hL',`rotate(${f2(p.hp[0])} 43 90)`);S('j-hR',`rotate(${f2(-p.hp[1])} 57 90)`);
+ S('j-kL',`rotate(${f2(-p.kn[0])} 43 114)`);S('j-kR',`rotate(${f2(p.kn[1])} 57 114)`);
+}
+function rigSVG(a){
+ a=a||{};let sk,oc,cl,head,defs='';
+ if(!a.sp&&!a.img){const p=avParts(a);sk=p.sk;oc=p.oc;cl=a.cl||0;defs=p.defs;head=`<g transform="translate(50 31.500) scale(.64) translate(-50 -42)">${p.back}${p.head}</g>`}
+ else if(a.img){sk='#d9b08c';oc='#3a3f4b';cl=2;head=`<clipPath id="rhc"><ellipse cx="50" cy="31.500" rx="13" ry="15.500"/></clipPath><image href="${esc(a.img)}" x="32" y="14" width="36" height="36" preserveAspectRatio="xMidYMin slice" clip-path="url(#rhc)"/>`}
+ else{const c=SPC[a.sp]||['#333','#e8b98a'];oc=c[0];sk=c[1];cl=2;head=SP[a.sp](100).replace(/^<svg[^>]*>/,'<svg x="22.500" y="8.400" width="55" height="36.300" viewBox="0 0 100 66" overflow="hidden">')}
+ const dk=shade(sk,-.2),sl=cl===3?shade(oc,-.45):cl===2?shade(oc,-.2):oc,fs=cl===0?sk:sl,pc=cl===0?'#2f4660':shade(oc,-.6),shoe='#17171b';
+ const over=[`<path d="M44 53q6 7 12 0z" fill="${dk}"/>`,`<path d="M43 52l7 10 7-10-3-1.500-4 4-4-4z" fill="#fff"/><path d="M50 62v26" stroke="${shade(oc,-.3)}" stroke-width=".8"/>`,
+  `<path d="M43 52l7 34 7-34-7 7z" fill="#f4f4f0"/><path d="M43 52l-5 33 12-24zM57 52l5 33-12-24z" fill="${shade(oc,-.4)}"/><path d="M50 60l-2 4 2 10 2-10z" fill="${shade(oc,.1)}"/>`,
+  `<path d="M41 54l9 13 9-13 3 34H38z" fill="#f4efe0"/><path d="M41 54l9 13 9-13" stroke="${shade(oc,-.6)}" stroke-width="2.500" fill="none"/><circle cx="50" cy="74" r="1.300" fill="#d4a94f"/><circle cx="50" cy="82" r="1.300" fill="#d4a94f"/>`][cl];
+ const arm=(x,sd)=>`<g class="j-a${sd}"><path d="M${x} 57V73" stroke="${sl}" stroke-width="9.500" stroke-linecap="round"/><circle cx="${x}" cy="57" r="5.200" fill="${sl}"/><g class="j-e${sd}"><path d="M${x} 73V89" stroke="${fs}" stroke-width="8" stroke-linecap="round"/><g class="j-w${sd}"><circle cx="${x}" cy="92" r="4" fill="${sk}"/></g></g></g>`;
+ const leg=(x,sd,sx)=>`<g class="j-h${sd}"><path d="M${x} 90V114" stroke="${pc}" stroke-width="11.500" stroke-linecap="round"/><g class="j-k${sd}"><path d="M${x} 114V138" stroke="${pc}" stroke-width="10" stroke-linecap="round"/><ellipse cx="${x+sx}" cy="141.500" rx="6.500" ry="3.300" fill="${shoe}"/></g></g>`;
+ return `${defs}<g class="j-root">${leg(43,'L',1.5)}${leg(57,'R',-1.5)}<g class="j-torso"><path d="M37 55Q50 50.500 63 55L61.500 88Q50 91 38.500 88Z" fill="${sl}"/>${over}<rect x="39" y="86" width="22" height="3.500" rx="1" fill="#15151a"/>${arm(36,'L')}${arm(64,'R')}<g class="j-head"><path d="M44.500 42h11v12q-5.500 3-11 0z" fill="${dk}"/>${head}</g></g></g>`;
+}
+const rigHTML=(a,w,key,mv)=>`<svg class="rig" data-rig="${key}" data-mv="${mv||''}" width="${w}" height="${Math.round(w*1.5)}" viewBox="0 0 100 150">${rigSVG(a)}</svg>`;
+const RIG_T0={};let rigRun=false;
+function applyRigs(){const now=performance.now();document.querySelectorAll('svg[data-rig]').forEach(el=>{const mv=el.getAttribute('data-mv'),t=(now-(RIG_T0[el.getAttribute('data-rig')]||0))/1000;setPose(el,mv&&POSE[mv]&&t<DUR[mv]?POSE[mv](t):poseIdle(now/1000))})}
+function rigLoop(){applyRigs();if(document.querySelector('svg[data-rig]'))requestAnimationFrame(rigLoop);else rigRun=false}
+function startRigs(){applyRigs();if(!rigRun&&document.querySelector('svg[data-rig]')){rigRun=true;requestAnimationFrame(rigLoop)}}
+/* fala em destaque (legenda) e palco do movimento */
+const capHtml=()=>{
+ const who=id=>st.players.find(p=>p.pid===id),sp=st.say&&who(st.say.pid),fe=fxOn&&EMS().find(e=>e.id===fxOn.id),fp=fxOn&&who(fxOn.pid);
+ let h='';
+ if(sp)h+=`<div class="cap-say">${av(sp.av,36)}<div><b>${esc(sp.name)}</b><br>“${esc(st.say.text)}”</div></div>`;
+ if(fe&&fe.txt&&fp)h+=`<div class="cap-say">${av(fp.av,36)}<div><b>${esc(fp.name)}</b><br>“${esc(fe.txt)}”</div></div>`;
+ return `<div id="cap" aria-live="polite">${h||esc(st.log[st.log.length-1]||'')}</div>`};
+const stageHtml=()=>{
+ const fe=fxOn&&EMS().find(e=>e.id===fxOn.id),p=fxOn&&st.players.find(x=>x.pid===fxOn.pid);
+ if(!fe||!fe.mv||!p)return '';
+ return `<div class="stagebox"><div class="stname">${esc(p.name)}</div>${rigHTML(p.av,120,'fx'+fxOn.k,fe.mv)}</div>`};
+
 /* ---------- Cartas do Coup (ilustrações originais) ---------- */
-const CT={duke:{bg:'#4b2170',hl:'#7b3fa0',n:'DUQUE'},assassin:{bg:'#161b22',hl:'#2e3846',n:'ASSASSINO'},captain:{bg:'#143d63',hl:'#2574a9',n:'CAPITÃO'},ambassador:{bg:'#17543a',hl:'#2a8a4f',n:'EMBAIXADOR'},contessa:{bg:'#6e1f17',hl:'#a8392b',n:'CONDESSA'}};
+const CT={duke:{bg:'#4b2170',hl:'#7b3fa0',n:'DUQUE'},assassin:{bg:'#161b22',hl:'#2e3846',n:'ASSASSINO'},captain:{bg:'#143d63',hl:'#2574a9',n:'CAPITÃO'},ambassador:{bg:'#17543a',hl:'#2a8a4f',n:'EMBAIXADOR'},contessa:{bg:'#6e1f17',hl:'#a8392b',n:'CONDESSA'},jester:{bg:'#7a3b0c',hl:'#d9822b',n:'BUFÃO'},bureaucrat:{bg:'#4a3b1a',hl:'#8a7230',n:'BUROCRATA'}};
 const EY=(y,sk)=>`<circle cx="44.500" cy="${y}" r="1.600" fill="#222"/><circle cx="55.500" cy="${y}" r="1.600" fill="#222"/>`;
 const FIG={
 duke:`<path d="M16 116c0-24 14-32 34-32s34 8 34 32z" fill="#2f1049"/><path d="M26 88q24 14 48 0l5 8q-29 18-58 0z" fill="#f4efe6"/><circle cx="50" cy="58" r="15" fill="#ecc19a"/><path d="M36 62q14 24 28 0q-5 7-14 7t-14-7z" fill="#d8d8d8"/>${EY(56)}<path d="M45 63q5 2 10 0" stroke="#7a3b2a" fill="none" stroke-width="1.200"/><path d="M33 47l3-17 8 9 6-14 6 14 8-9 3 17z" fill="#f1c40f" stroke="#9a7500"/><rect x="33" y="45" width="34" height="5" fill="#f1c40f"/><circle cx="50" cy="38" r="1.800" fill="#c0392b"/>`,
@@ -203,6 +297,9 @@ captain:`<path d="M18 112L30 70" stroke="#d5dce3" stroke-width="2.500"/><path d=
 ambassador:`<path d="M14 118c0-26 14-34 36-34s36 8 36 34z" fill="#0f3a27"/><path d="M36 84h28l-4 14-10-6-10 6z" fill="#f4efe6"/><path d="M34 118V92M66 118V92" stroke="#d4a94f" stroke-width="2"/><circle cx="50" cy="58" r="15" fill="#d9a77c"/><path d="M34 54q16-22 32 0q-6-8-16-8t-16 8z" fill="#2a2a2a"/>${EY(57)}<path d="M45 64q5 2 10 0" stroke="#7a3b2a" fill="none" stroke-width="1.200"/><rect x="58" y="88" width="28" height="17" rx="3" fill="#efe2b8" transform="rotate(-12 72 96)"/><circle cx="74" cy="102" r="4" fill="#b3262d"/>`,
 contessa:`<path d="M20 118c0-20 12-30 30-30s30 10 30 30z" fill="#4a0f0a"/><path d="M30 64c-6-30 6-42 20-42s26 12 20 42c-4-10-6-16-6-20-6 6-22 6-28 0 0 4-2 10-6 20z" fill="#2a1510"/><path d="M34 90q16 14 32 0l-2-5q-14 10-28 0z" fill="#f1d2b4"/><circle cx="50" cy="58" r="14" fill="#f1d2b4"/><path d="M36 50q14-12 28 0q-14-4-28 0z" fill="#2a1510"/>${EY(57)}<path d="M45 65q5 3 10 0" stroke="#b3262d" stroke-width="2" fill="none"/><path d="M38 42l3-7 4 5 5-9 5 9 4-5 3 7z" fill="#f1c40f"/><path d="M62 114l10-42 16 10z" fill="#f3ecd9" stroke="#d4a94f"/>`
 };
+Object.assign(FIG,{
+jester:`<path d="M16 118c0-24 14-32 34-32s34 8 34 32z" fill="#2a6f8f"/><path d="M30 92l10 8-10 8-10-8zM50 100l10 8-10 8-10-8zM70 92l10 8-10 8-10-8z" fill="#e8b23a"/><path d="M34 86q16 10 32 0l4 6q-20 14-40 0z" fill="#c0392b"/><circle cx="50" cy="58" r="15" fill="#f0c9a0"/>${EY(56)}<path d="M44 64q6 5 12 0" stroke="#b3262d" stroke-width="2" fill="none"/><circle cx="43" cy="62" r="2" fill="#e8908a" opacity=".6"/><circle cx="57" cy="62" r="2" fill="#e8908a" opacity=".6"/><path d="M35 48q-14-8-20-24 12 6 22 14zM65 48q14-8 20-24-12 6-22 14z" fill="#c0392b"/><path d="M35 48q15-12 30 0l-2 5q-13-6-26 0z" fill="#2a6f8f"/><circle cx="15" cy="24" r="3.200" fill="#f1c40f"/><circle cx="85" cy="24" r="3.200" fill="#f1c40f"/>`,
+bureaucrat:`<path d="M16 118c0-24 14-32 34-32s34 8 34 32z" fill="#3b3b44"/><path d="M40 86l10 14 10-14-3-3h-14z" fill="#f4efe6"/><path d="M50 90l-3 6 3 14 3-14z" fill="#8b1e1e"/><circle cx="50" cy="58" r="15" fill="#e3b690"/><path d="M36 52q14-14 28 0q-14-6-28 0z" fill="#5a5a5a"/>${EY(57)}<g fill="none" stroke="#222" stroke-width="1.200"><circle cx="44.500" cy="57" r="4.500"/><circle cx="55.500" cy="57" r="4.500"/><path d="M49 57h2"/></g><path d="M45 65q5 2 10 0" stroke="#7a3b2a" fill="none" stroke-width="1.200"/><rect x="58" y="92" width="26" height="20" fill="#efe2b8" transform="rotate(8 71 102)"/><path d="M62 98h18M62 103h18M62 108h12" stroke="#8a7a50" stroke-width="1" transform="rotate(8 71 102)"/><circle cx="24" cy="106" r="5" fill="#f1c40f" stroke="#9a7500"/><circle cx="32" cy="110" r="5" fill="#f1c40f" stroke="#9a7500"/>`});
 function cardArt(c){
  if(!c||c==='back')return `<rect width="100" height="140" rx="7" fill="#1a3a52"/><rect x="5" y="5" width="90" height="130" rx="4" fill="none" stroke="#d4a94f" stroke-width="2"/><path d="M50 22L80 70L50 118L20 70z" fill="none" stroke="#d4a94f" stroke-width="1.500"/><text x="50" y="76" text-anchor="middle" font-family="Georgia,serif" font-weight="700" font-size="17" fill="#d4a94f">COUP</text>`;
  const t=CT[c];
@@ -213,7 +310,7 @@ const cardHtml=(c,dead)=>{const k=c||'back';return `<div class="cd ${dead?'dead'
 
 /* ---------- Conexão ---------- */
 s.on('connect',async()=>{const tk=localStorage.tk;if(tk){const r=await api({t:'tok',tk});if(r.me){me=r.me;if(localStorage.code)s.emit('join',{code:localStorage.code})}else localStorage.removeItem('tk')}draw()});
-s.on('state',async x=>{if(!st)await refresh();if(x.fx&&x.fx.k!==lastK){lastK=x.fx.k;fxOn=x.fx;clearTimeout(fxT);fxT=setTimeout(()=>{fxOn=null;draw()},3300)}st=x;err='';localStorage.code=x.code;if(!x.xchg)sel=[];if(x.phase!=='action')tgt=null;draw()});
+s.on('state',async x=>{if(!st)await refresh();if(x.fx&&x.fx.k!==lastK){lastK=x.fx.k;fxOn=x.fx;RIG_T0['fx'+x.fx.k]=performance.now();const f0=EMS().find(e=>e.id===x.fx.id),d0=(f0&&f0.mv&&DUR[f0.mv]?DUR[f0.mv]+.5:3.3)*1000;clearTimeout(fxT);fxT=setTimeout(()=>{fxOn=null;draw()},d0)}st=x;err='';localStorage.code=x.code;if(!x.xchg)sel=[];if(x.phase!=='action')tgt=null;draw()});
 s.on('err',m=>{err=m;if(!st)localStorage.removeItem('code');draw()});
 s.on('invite',i=>{inv=i;draw()});
 const mv=m=>{tgt=null;s.emit('move',m)};
@@ -279,43 +376,64 @@ const mrow=(k,v,done,daily)=>{const x=Math.min(v,k.n);return `<div class="pl"><d
 const itRow=e=>`<div class="pl"><div><b>${e.n}</b><br><small>${e.txt||'Movimento do personagem na partida'}</small></div>${ownedIt(e)?'<small>Você tem</small>':`<button ${me.coins<e.c?'disabled':''} onclick="call({t:'buy',id:'${e.id}'})">${e.c} moedas</button>`}</div>`;
 /* ---------- Eventos e Admin ---------- */
 let admTab='prices';
-const MODEL={normal:'Só meta',duelo:'1x1 (duelo)',mesa_cheia:'Mesa cheia (6+)',dobro:'Moedas em dobro'};
+const MODEL={normal:'Regras normais',regras:'Jogo com regras próprias',dobro:'Moedas em dobro',duelo:'1x1 (duelo)',mesa_cheia:'Mesa cheia (6+)'};
 const GOALL={wins:'Vencer partidas',games:'Jogar partidas',chal:'Acertar desafios',blk:'Bloquear',coup:'Dar golpes'};
 const goalTxt=g=>g?({wins:`Vencer ${g.n} partida(s)`,games:`Jogar ${g.n} partida(s)`,chal:`Acertar ${g.n} desafio(s)`,blk:`Bloquear ${g.n} vez(es)`,coup:`Dar ${g.n} golpe(s)`})[g.k]:'';
 const prizeTxt=p=>[p.coins?p.coins+' moedas':'',p.gems?p.gems+' gemas':'',p.xp?p.xp+' XP':'',p.skin?'personagem '+((SKS().find(k=>k.id===p.skin)||{}).n||''):''].filter(Boolean).join(', ')||'sem prêmio';
 const evCard=e=>{
- const my=e.my||{n:0,c:false},g=e.goal,done=g&&my.n>=g.n,md=e.mode||'normal';
- const play=e.active?(md==='duelo'?`<button onclick="s.emit('join',{create:true,mode:'duelo',bots:1})">Jogar 1x1 contra bot</button><button class="alt" onclick="s.emit('join',{create:true,mode:'duelo'})">Criar sala 1x1 (chamar alguém)</button>`
-  :md==='mesa_cheia'?`<button onclick="s.emit('join',{create:true,mode:'mesa_cheia',bots:5})">Jogar com bots</button><button class="alt" onclick="s.emit('join',{create:true,mode:'mesa_cheia'})">Criar sala (6+ jogadores)</button>`:''):'';
- return `<div class="box"><b>${esc(e.title)}</b> <small>${MODEL[md]}${e.start||e.end?' | '+esc(e.start||'...')+' até '+esc(e.end||'...'):''}${e.active?'':' | fora do período'}</small><p>${esc(e.text||'')}</p>
+ const my=e.my||{n:0,c:false},g=e.goal,done=g&&my.n>=g.n,md=e.mode||'normal',bots=Math.min(5,((e.rl&&e.rl.min)||3)-1);
+ const play=e.active&&e.rl?`<button onclick="s.emit('join',{create:true,ev:'${e.id}',bots:${bots}})">Jogar contra bots</button><button class="alt" onclick="s.emit('join',{create:true,ev:'${e.id}'})">Criar sala do evento</button>`:'';
+ return `<div class="box"><b>${esc(e.title)}</b> <small>${MODEL[md]||''}${e.start||e.end?' | '+esc(e.start||'...')+' até '+esc(e.end||'...'):''}${e.active?'':' | fora do período'}</small><p>${esc(e.text||'')}</p>${e.rl?`<p><small>${esc(rulesTxt(e.rl))}</small></p>`:''}
  ${g?`<p>Meta: ${goalTxt(g)} <small>(${Math.min(my.n,g.n)}/${g.n})</small></p><div class="bar"><i style="width:${Math.min(100,my.n/g.n*100)}%"></i></div><p><small>Prêmio: ${prizeTxt(e.prize||{})}</small></p>${my.c?'<small>Prêmio resgatado</small>':done?`<button onclick="call({t:'evclaim',id:'${e.id}'})">Resgatar prêmio</button>`:''}`:''}${md==='dobro'&&e.active?'<p><small>Suas moedas das partidas valem em dobro agora.</small></p>':''}${play}</div>`};
 const fv=i=>document.getElementById(i);
 function resizeImg(file){return new Promise((ok,no)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const S=512,c=document.createElement('canvas');c.width=S;c.height=S;const m=Math.min(im.width,im.height),sx=(im.width-m)/2,sy=(im.height-m)*.25;c.getContext('2d').drawImage(im,sx,sy,m,m,0,0,S,S);ok(c.toDataURL('image/jpeg',.85))};im.onerror=()=>no(new Error('Imagem inválida.'));im.src=fr.result};fr.onerror=()=>no(new Error('Não consegui ler o arquivo.'));fr.readAsDataURL(file)})}
 async function imgFrom(i){const f=fv(i)&&fv(i).files[0];if(!f)throw new Error('Escolha uma imagem primeiro.');return resizeImg(f)}
-const admSave=id=>call({t:'adm_skin',id,c:+fv('pc_'+id).value||0,r:fv('pq_'+id).value,owner:fv('po_'+id).checked,hide:fv('ph_'+id).checked,noRaffle:fv('pr_'+id).checked});
+const admSave=id=>call({t:'adm_skin',id,n:fv('pn_'+id).value,c:+fv('pc_'+id).value||0,r:fv('pq_'+id).value,owner:fv('po_'+id).checked,hide:fv('ph_'+id).checked,noRaffle:fv('pr_'+id).checked});
 const admEm=id=>call({t:'adm_em',id,c:+fv('pe_'+id).value||0});
 async function admImg(id){try{const img=await imgFrom('fi_'+id);await call({t:'adm_img',id,img})}catch(e){err=e.message;draw()}}
 async function admAdd(){try{const img=await imgFrom('nf');await call({t:'adm_addskin',n:fv('nn').value,r:fv('nr').value,c:+fv('nc').value||0,noRaffle:fv('nq').checked,owner:fv('no').checked,img})}catch(e){err=e.message;draw()}}
-const admEv=()=>call({t:'evadd',title:fv('et').value,text:fv('ex').value,mode:fv('em').value,goalK:fv('gk').value,goalN:+fv('gn').value||1,start:fv('es').value,end:fv('ee').value,coins:+fv('pc').value||0,gems:+fv('pg').value||0,xp:+fv('px').value||0,skin:fv('ps').value});
+const admEv=()=>call({t:'evadd',title:fv('et').value,text:fv('ex').value,mode:fv('em').value,rules:rulesFromForm(),goalK:fv('gk').value,goalN:+fv('gn').value||1,start:fv('es').value,end:fv('ee').value,coins:+fv('pc').value||0,gems:+fv('pg').value||0,xp:+fv('px').value||0,skin:fv('ps').value});
 const admRules=()=>call({t:'adm_rules',minPlayers:+fv('rm').value||3});
 const admEmAdd=()=>call({t:'adm_addem',n:fv('en').value,txt:fv('ef').value,mv:fv('ev').value,c:+fv('ec').value||0});
 const RAR=['comum','raro','épico','lendário','mítico','exclusivo'];
 const CHARS=['duke','assassin','captain','ambassador','contessa'];
 let pvMv='',pvT=0;
-const testMv=m=>{pvMv=m;draw();clearTimeout(pvT);pvT=setTimeout(()=>{pvMv='';draw()},3500)};
+const testMv=m=>{pvMv=m;RIG_T0.pv=performance.now();draw();clearTimeout(pvT);pvT=setTimeout(()=>{pvMv='';draw()},((DUR[m]||3)+.5)*1000)};
 function pickView(){
- const done=st.picked.includes(st.me);
- return `<h2>1x1: escolha sua carta</h2><p>Escolha 1 carta de qualquer personagem. A outra carta da sua mão será sorteada, e sobram 3 cartas no baralho.</p>${done?'<p>Escolha feita. Aguardando o adversário...</p>':`<div class="row" style="--cw:84px">${CHARS.map(c=>`<span class="pick" onclick="s.emit('pick','${c}')">${cardHtml(c,0)}</span>`).join('')}</div>`}<button class="alt" onclick="leave()">Sair da sala</button>`}
+ const n=st.pickN,mine=st.myPicks,done=mine>=n;
+ return `<h2>Escolha ${n} carta(s)</h2><p>Escolha de qualquer personagem do baralho do jogo. As outras cartas da sua mão serão sorteadas.</p>${done?'<p>Escolha feita. Aguardando os outros jogadores...</p>':`<p>Você escolheu ${mine} de ${n}.</p><div class="row" style="--cw:84px">${st.pickChars.map(c=>`<span class="pick" onclick="s.emit('pick','${c}')">${cardHtml(c,0)}</span>`).join('')}</div>`}<button class="alt" onclick="leave()">Sair da sala</button>`}
+const rulesTxt=rl=>{if(!rl)return '';const o=[`${rl.hand} carta(s) por jogador`,`${rl.coins} moeda(s) iniciais`,`Golpe custa ${rl.coup} (obrigatório com ${rl.force})`];
+ if(rl.pick)o.push(`cada um escolhe ${rl.pick} carta(s)`);if(rl.firstRule||(rl.firstRule===undefined&&rl.first))o.push('primeira jogada: só Renda');
+ if(rl.chars)o.push('cartas: '+Object.entries(rl.chars).map(([c,n])=>`${n}x ${N[c]}`).join(', '));if(rl.off&&rl.off.length)o.push('ações desligadas: '+rl.off.map(a=>A[a]||a).join(', '));return o.join('; ')+'.'};
+const IMPORT=`<h2>Criar personagem por código (a partir de foto)</h2><div class="box"><p><small>Mande a foto no chat com o assistente. Ele devolve um código; cole aqui. Use só fotos de pessoas que autorizaram.</small></p><textarea id="ja" rows="4" placeholder='{"h":1,"hc":"#2b1d14","skin":"#e0b394","e":"#5a4632","b":0,"cl":2,"oc":"#2c3e50","x":"glasses"}' oninput="prevAv()"></textarea><div id="prevav"></div><input id="jn" placeholder="Nome do personagem" maxlength="24"><select id="jr"><option value="raro">Raro</option><option value="épico">Épico</option><option value="lendário">Lendário</option><option value="mítico">Mítico</option><option value="comum">Comum (grátis)</option></select><input id="jc" type="number" min="0" placeholder="Preço em gemas"><label><input id="jq" type="checkbox" style="width:auto"> fora dos sorteios</label><br><label><input id="jo" type="checkbox" style="width:auto"> exclusivo só meu</label><br><button onclick="admJson()">Criar personagem</button></div>`;
+function prevAv(){try{const a=JSON.parse(fv('ja').value);fv('prevav').innerHTML=rigHTML(a,90,'pva','')}catch(e){fv('prevav').innerHTML='<small>Código inválido</small>'}startRigs()}
+async function admJson(){try{const a=JSON.parse(fv('ja').value);await call({t:'adm_addskin',n:fv('jn').value,r:fv('jr').value,c:+fv('jc').value||0,noRaffle:fv('jq').checked,owner:fv('jo').checked,av:a})}catch(e){err=e.message;draw()}}
+const CH7=['duke','assassin','captain','ambassador','contessa','jester','bureaucrat'],OFFA=['aid','tax','assassinate','steal','exchange','coop','disorder'];
+const OFFN={aid:'Ajuda externa',tax:'Taxar',assassinate:'Assassinar',steal:'Extorquir',exchange:'Trocar cartas',coop:'Cooperar',disorder:'Desordem'};
+const RN=(id,l,ph)=>`<label class="rn">${l}<input id="${id}" type="number" min="0" placeholder="${ph}"></label>`;
+const ruleForm=()=>`<details><summary><b>Regras do jogo do evento</b> (só valem no tipo "Jogo com regras próprias")</summary>
+ <p><small>Deixe vazio para usar o padrão. Em cartas, informe quantas cópias de cada personagem entram no baralho (tudo vazio = baralho padrão).</small></p>
+ <div class="row"><button class="alt" onclick="preset('1x1')">Modelo 1x1</button><button class="alt" onclick="preset('mesa')">Modelo mesa cheia</button><button class="alt" onclick="preset('novos')">Com Bufão e Burocrata</button></div>
+ ${CH7.map(c=>RN('rc_'+c,'Cópias de '+N[c],'0')).join('')}
+ ${RN('rh','Cartas na mão','2')}${RN('rco','Moedas iniciais','2')}${RN('rpk','Cartas que cada jogador escolhe','0')}${RN('rcp','Custo do Golpe','7')}${RN('rfo','Golpe obrigatório a partir de','10')}${RN('ras','Custo do Assassinato','3')}${RN('rin','Ganho da Renda','1')}${RN('rai','Ganho da Ajuda externa','2')}${RN('rtx','Ganho do Taxar','3')}${RN('rst','Moedas da Extorsão','2')}${RN('rcoop','Moedas pegas na Cooperação','3')}${RN('rmin','Mínimo de jogadores','')}${RN('rmax','Máximo de jogadores','')}
+ <label><input id="rfi" type="checkbox" style="width:auto"> Primeira jogada só pode ser Renda</label><br><b>Ações desligadas</b><br>${OFFA.map(a=>`<label><input id="roff_${a}" type="checkbox" style="width:auto"> ${OFFN[a]}</label> `).join('')}</details>`;
+const rulesFromForm=()=>{const n=i=>{const e=fv(i);return e&&e.value!==''?+e.value:undefined},chars={};CH7.forEach(c=>{const v=n('rc_'+c);if(v)chars[c]=v});
+ return{chars:Object.keys(chars).length?chars:undefined,hand:n('rh'),coins:n('rco'),pick:n('rpk'),coup:n('rcp'),force:n('rfo'),assassinate:n('ras'),income:n('rin'),aid:n('rai'),tax:n('rtx'),steal:n('rst'),coop:n('rcoop'),min:n('rmin'),max:n('rmax'),first:fv('rfi').checked,off:OFFA.filter(a=>fv('roff_'+a).checked)}};
+function preset(k){const set=(i,v)=>{const e=fv(i);if(e)e[e.type==='checkbox'?'checked':'value']=v};
+ CH7.forEach(c=>set('rc_'+c,''));fv('em').value='regras';
+ if(k==='1x1'){['duke','assassin','captain','ambassador','contessa'].forEach(c=>set('rc_'+c,1));set('rpk',1);set('rmin',2);set('rmax',2);set('rfi',true)}
+ if(k==='mesa'){set('rmin',6);set('rmax',10)}
+ if(k==='novos'){['duke','assassin','captain','contessa','jester','bureaucrat'].forEach(c=>set('rc_'+c,3))}}
 const ADM={
- prices:()=>`<h2>Personagens: preço, nível e visibilidade</h2><p><small>Nível = raridade (comum, raro, épico, lendário, mítico). Preço em gemas.</small></p>${SKS().map(k=>`<div class="pl" style="flex-wrap:wrap"><div class="row">${av(k.a,44)}<div><b>${esc(k.n)}</b><br><small>${k.r}${k.owner?' (só você)':''}${k.mod?' | alterado':''}</small></div></div><div class="row"><input id="pc_${k.id}" type="number" min="0" value="${k.c}" style="width:90px"><select id="pq_${k.id}" style="width:auto">${RAR.map(r=>`<option ${k.r===r?'selected':''}>${r}</option>`).join('')}</select><label><input id="po_${k.id}" type="checkbox" ${k.owner?'checked':''} style="width:auto"> só meu</label><label><input id="ph_${k.id}" type="checkbox" ${k.hide?'checked':''} style="width:auto"> esconder</label><label><input id="pr_${k.id}" type="checkbox" ${k.noRaffle?'checked':''} style="width:auto"> fora dos sorteios</label><button onclick="admSave('${k.id}')">Salvar</button>${k.mod?`<button class="alt" onclick="call({t:'adm_reset',id:'${k.id}'})">Restaurar original</button>`:''}</div></div>`).join('')}
+ prices:()=>`<h2>Personagens: preço, nível e visibilidade</h2><p><small>Nível = raridade (comum, raro, épico, lendário, mítico). Preço em gemas.</small></p>${SKS().map(k=>`<div class="pl" style="flex-wrap:wrap"><div class="row">${av(k.a,44)}<div><b>${esc(k.n)}</b><br><small>${k.r}${k.owner?' (só você)':''}${k.mod?' | alterado':''}</small></div></div><div class="row"><input id="pn_${k.id}" value="${esc(k.n)}" maxlength="24" style="width:150px" aria-label="Nome"><input id="pc_${k.id}" type="number" min="0" value="${k.c}" style="width:90px"><select id="pq_${k.id}" style="width:auto">${RAR.map(r=>`<option ${k.r===r?'selected':''}>${r}</option>`).join('')}</select><label><input id="po_${k.id}" type="checkbox" ${k.owner?'checked':''} style="width:auto"> só meu</label><label><input id="ph_${k.id}" type="checkbox" ${k.hide?'checked':''} style="width:auto"> esconder</label><label><input id="pr_${k.id}" type="checkbox" ${k.noRaffle?'checked':''} style="width:auto"> fora dos sorteios</label><button onclick="admSave('${k.id}')">Salvar</button>${k.mod?`<button class="alt" onclick="call({t:'adm_reset',id:'${k.id}'})">Restaurar original</button>`:''}</div></div>`).join('')}
   <h2>Preços de falas e movimentos (moedas)</h2>${EMS().map(e=>`<div class="pl"><b>${esc(e.n)}</b><div class="row"><input id="pe_${e.id}" type="number" min="0" value="${e.c}" style="width:90px"><button onclick="admEm('${e.id}')">Salvar</button></div></div>`).join('')}`,
- chars:()=>`<h2>Adicionar personagem</h2><div class="box"><input id="nn" placeholder="Nome do personagem" maxlength="24"><select id="nr"><option value="raro">Raro</option><option value="épico">Épico</option><option value="lendário">Lendário</option><option value="mítico">Mítico</option><option value="comum">Comum (grátis)</option></select><input id="nc" type="number" min="0" placeholder="Preço em gemas"><label><input id="nq" type="checkbox" style="width:auto"> fora dos sorteios</label><br><label><input id="no" type="checkbox" style="width:auto"> exclusivo só meu</label>
+ chars:()=>`${IMPORT}<h2>Adicionar personagem</h2><div class="box"><input id="nn" placeholder="Nome do personagem" maxlength="24"><select id="nr"><option value="raro">Raro</option><option value="épico">Épico</option><option value="lendário">Lendário</option><option value="mítico">Mítico</option><option value="comum">Comum (grátis)</option></select><input id="nc" type="number" min="0" placeholder="Preço em gemas"><label><input id="nq" type="checkbox" style="width:auto"> fora dos sorteios</label><br><label><input id="no" type="checkbox" style="width:auto"> exclusivo só meu</label>
   <p><small>Imagem do personagem: um retrato com o rosto centralizado e fundo simples. Use só imagens que você tenha direito de usar.</small></p><input id="nf" type="file" accept="image/*"><button onclick="admAdd()">Adicionar</button></div>
   <h2>Imagens e personagens</h2>${SKS().map(k=>`<div class="pl" style="flex-wrap:wrap"><div class="row">${av(k.a,48)}<div><b>${esc(k.n)}</b><br><small>${k.r}${k.mod?' | alterado':''}</small></div></div><div class="row"><input id="fi_${k.id}" type="file" accept="image/*" style="max-width:190px"><button class="alt" onclick="admImg('${k.id}')">Trocar imagem</button>${k.mod?`<button onclick="call({t:'adm_reset',id:'${k.id}'})">Restaurar original</button>`:''}${k.custom?`<button class="alt" onclick="call({t:'adm_delskin',id:'${k.id}'})">Apagar</button>`:''}</div></div>`).join('')}`,
- falas:()=>`<div class="${pvMv?'mving mv-'+pvMv:''}" style="text-align:center">${av(eff(me),120,true)}</div><h2>Nova fala ou movimento</h2><div class="box"><input id="en" placeholder="Nome (ex.: Comemoração do campeão)" maxlength="24"><input id="ef" placeholder="Fala que aparece no balão (opcional)" maxlength="60"><select id="ev"><option value="">Sem movimento</option>${Object.entries(MV).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="ec" type="number" min="0" placeholder="Preço em moedas (0 = grátis)"><button onclick="admEmAdd()">Criar</button></div>
+ falas:()=>`<div style="text-align:center">${rigHTML(eff(me),140,'pv',pvMv)}</div><h2>Nova fala ou movimento</h2><div class="box"><input id="en" placeholder="Nome (ex.: Comemoração do campeão)" maxlength="24"><input id="ef" placeholder="Fala que aparece no balão (opcional)" maxlength="60"><select id="ev"><option value="">Sem movimento</option>${Object.entries(MV).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="ec" type="number" min="0" placeholder="Preço em moedas (0 = grátis)"><button onclick="admEmAdd()">Criar</button></div>
   <h2>Testar movimentos</h2><div>${Object.entries(MV).map(([k,t])=>`<button class="alt" onclick="testMv('${k}')">${t}</button>`).join('')}</div>
   <h2>Criadas por você</h2>${EMS().filter(e=>e.custom).map(e=>`<div class="pl"><div><b>${esc(e.n)}</b><br><small>${e.txt?esc(e.txt):'sem fala'} | ${e.mv?MV[e.mv]:'sem movimento'} | ${e.c} moedas</small></div><button class="alt" onclick="call({t:'adm_delem',id:'${e.id}'})">Apagar</button></div>`).join('')||'<p>Nenhuma ainda.</p>'}`,
- events:()=>`<h2>Novo evento</h2><div class="box"><input id="et" placeholder="Título" maxlength="60"><input id="ex" placeholder="Descrição" maxlength="400"><b>Modo</b><select id="em">${Object.entries(MODEL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><b>Meta</b><select id="gk"><option value="">Sem meta</option>${Object.entries(GOALL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="gn" type="number" min="1" placeholder="Quantidade da meta (ex.: 10)"><b>Período (deixe vazio para sempre ativo)</b><input id="es" type="date"><input id="ee" type="date"><b>Prêmio</b><input id="pc" type="number" min="0" placeholder="Moedas"><input id="pg" type="number" min="0" placeholder="Gemas"><input id="px" type="number" min="0" placeholder="XP do passe"><select id="ps"><option value="">Sem personagem</option>${SKS().filter(k=>!k.owner&&k.c).map(k=>`<option value="${k.id}">${esc(k.n)}</option>`).join('')}</select><button onclick="admEv()">Publicar evento</button></div>
+ events:()=>`<h2>Novo evento</h2><div class="box"><input id="et" placeholder="Título" maxlength="60"><input id="ex" placeholder="Descrição" maxlength="400"><b>Tipo</b><select id="em"><option value="normal">${MODEL.normal}</option><option value="dobro">${MODEL.dobro}</option><option value="regras">${MODEL.regras}</option></select>${ruleForm()}<b>Meta</b><select id="gk"><option value="">Sem meta</option>${Object.entries(GOALL).map(([k,t])=>`<option value="${k}">${t}</option>`).join('')}</select><input id="gn" type="number" min="1" placeholder="Quantidade da meta (ex.: 10)"><b>Período (deixe vazio para sempre ativo)</b><input id="es" type="date"><input id="ee" type="date"><b>Prêmio</b><input id="pc" type="number" min="0" placeholder="Moedas"><input id="pg" type="number" min="0" placeholder="Gemas"><input id="px" type="number" min="0" placeholder="XP do passe"><select id="ps"><option value="">Sem personagem</option>${SKS().filter(k=>!k.owner&&k.c).map(k=>`<option value="${k.id}">${esc(k.n)}</option>`).join('')}</select><button onclick="admEv()">Publicar evento</button></div>
   <h2>Eventos publicados</h2>${me.events.map(e=>`<div class="pl"><div><b>${esc(e.title)}</b><br><small>${MODEL[e.mode||'normal']} ${e.active?'(ativo)':'(fora do período)'}</small></div><button class="alt" onclick="call({t:'evdel',id:'${e.id}'})">Apagar</button></div>`).join('')||'<p>Nenhum.</p>'}`,
  rules:()=>`<h2>Regras da casa</h2><div class="box"><b>Mínimo de jogadores fora de eventos</b><input id="rm" type="number" min="2" max="6" value="${(me.rules||{}).minPlayers||3}"><button onclick="admRules()">Salvar regras</button></div><p><small>O duelo 1x1 só existe em eventos: cada jogador escolhe 1 carta, a outra é sorteada e sobram 3 cartas no baralho.</small></p>`
 };
@@ -338,7 +456,7 @@ const SCR={
  avatar:()=>{
   const a=me.avatar,sw=(k,L,cur)=>L.map(c=>`<button class="sw ${cur===c?'on':''}" style="background:${c}" aria-label="${c}" onclick='${sa(k,c)}'></button>`).join('');
   const ch=(k,L,cur)=>L.map((n,i)=>{const v=Array.isArray(n)?n[0]:i,t=Array.isArray(n)?n[1]:n;return `<button class="${cur===v?'':'alt'}" onclick='${sa(k,v)}'>${t}</button>`}).join('');
-  return sub('Personagem',`<div class="box row"><div class="${pvMv?'mving mv-'+pvMv:''}">${av(eff(me),140,true)}</div><div style="flex:1;min-width:230px">
+  return sub('Personagem',`<div class="box row"><div style="text-align:center">${rigHTML(eff(me),150,'pv',pvMv)}</div><div style="flex:1;min-width:230px">
    <b>Cabelo</b><br>${ch('h',OPT.h,a.h)}<br><b>Cor do cabelo</b><br>${sw('hc',HC,a.hc)}<br><b>Pele</b><br>${sw('skin',SKN,a.skin)}<br><b>Olhos</b><br>${sw('e',EYE,a.e||EYE[0])}<br>
    <b>Barba</b><br>${ch('b',OPT.b,a.b||0)}<br><b>Roupa</b><br>${ch('cl',OPT.cl,a.cl||0)}<br>${sw('oc',OC,a.oc)}<br><b>Acessório</b><br>${ch('x',OPT.x,a.x||'')}</div></div>
   <h2>Testar movimentos</h2><div>${EMS().filter(e=>e.mv&&ownedIt(e)).map(e=>`<button class="alt" onclick="testMv('${e.mv}')">${esc(e.n)}</button>`).join('')}</div><h2>Meus personagens</h2>${SKS().filter(ownedSk).map(k=>`<div class="pl"><div class="row">${av(k.a,60)}<div><b>${k.n}</b><br><small>${k.r}${k.owner?' (só você)':''}</small></div></div>${me.skin===k.id?'<small>Em uso</small>':`<button onclick="call({t:'skin',id:'${k.id}'})">Usar</button>`}</div>`).join('')}
@@ -352,9 +470,9 @@ const emoRow=()=>st.phase==='over'?'':`<div class="box"><small>Comemorar:</small
 
 function lobbyView(){
  const n=st.players.length,cp=Math.max(2,Math.round((2*n+7)/5)),host=st.host===st.me,fr=me.friends.filter(f=>f.on);
- return `<h1>Sala ${st.code}</h1>${st.mode&&st.mode!=='normal'?`<p><b>Evento: ${MODEL[st.mode]}</b></p>${st.mode==='duelo'?'<p><small>No duelo, cada um escolhe 1 carta, a outra é sorteada e sobram 3 cartas no baralho.</small></p>':''}`:''}<p>Passe o código para os amigos ou convide quem estiver online. Mínimo de ${st.min} jogadores.</p>`
+ return `<h1>Sala ${st.code}</h1>${st.evTitle?`<p><b>Evento: ${esc(st.evTitle)}</b></p>`:''}<p><small>${esc(rulesTxt(st.rl))}</small></p><p>Passe o código para os amigos ou convide quem estiver online. Mínimo de ${st.min} jogadores.</p>`
  +st.players.map(p=>`<div class="pl"><div class="row">${av(p.av,44)}<b>${esc(p.name)}</b>${p.bot?'<small>bot</small>':''}</div></div>`).join('')
- +`${st.mode==='duelo'?`<p>${n} jogador(es). Baralho do duelo: 3 cartas depois da distribuição.</p>`:`<p>${n} jogador(es): baralho de ${cp*5} cartas (${cp} de cada).</p>`}`
+ +`<p>${n} jogador(es).${st.rl.chars?'':` Baralho: ${cp*5} cartas (${cp} de cada).`}</p>`
  +(host?`<button class="alt" onclick="s.emit('bot',1)">Adicionar bot</button><button class="alt" onclick="s.emit('bot',-1)">Remover bot</button>${botLv()}<button ${n<st.min?'disabled':''} onclick="s.emit('start')">Começar o jogo</button>`:'<p>Esperando o anfitrião começar.</p>')
  +(fr.length?`<div class="box">Convidar amigo online:<br>${fr.map(f=>`<button class="alt" onclick="api({t:'invite',code:'${f.code}',room:'${st.code}'})">${esc(f.name)}</button>`).join('')}</div>`:'')
  +`<button class="alt" onclick="leave()">Sair da sala</button><p class="err">${esc(err)}</p>`}
@@ -368,15 +486,15 @@ function gameView(){
   const say=st.say&&st.say.pid===p.pid?`<div class="bub">${esc(st.say.text)}</div>`:'';
   const picking=p.pid===st.me&&st.phase==='lose'&&st.lose===st.me;const fe=fxOn&&fxOn.pid===p.pid?EMS().find(e=>e.id===fxOn.id):null,fxb=fe&&fe.txt?`<div class="fxb">${esc(fe.txt)}</div>`:'',fcls=fe&&fe.mv?'mving mv-'+fe.mv:'';
   const hand=p.cards.map((c,i)=>picking&&!c.dead?`<span class="pick" onclick="mv({t:'lose',i:${i}})">${cardHtml(c.c,0)}</span>`:cardHtml(c.c,c.dead)).join('');
-  return `<div class="seat ${cls} ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'}" style="--cw:${w}px">${say}${fxb}<div class="who ${fcls}">${av(p.av,cls==='s-me'?46:34,true)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div class="hand">${hand}</div></div>`};
+  return `<div class="seat ${cls} ${p.pid===st.turn?'turn':''} ${p.alive?'':'out'} ${st.say&&st.say.pid===p.pid?'speaking':''}" style="--cw:${w}px"><div class="who">${av(p.av,cls==='s-me'?46:34)}<div><b>${esc(p.name)}</b><br><small>${p.coins} moedas</small></div></div><div class="hand">${hand}</div></div>`};
  const rv=st.reveal?`<div class="rv"><div style="--cw:84px">${cardHtml(st.reveal.c,!st.reveal.ok)}</div><p>${nm(st.reveal.pid)} ${st.reveal.ok?'tinha':'não tinha'} ${N[st.reveal.c]}${st.reveal.ok?'!':'. Era blefe!'}</p></div>`:'';
  let status='',ctl='';
  if(st.phase==='action'){
   status=my?'Sua vez. Escolha uma ação.':`Vez de ${nm(st.turn)}`;
   if(my&&mp.alive){
    if(tgt)ctl=`Alvo de ${A[tgt]}:<br>`+st.players.filter(p=>p.alive&&p.pid!==st.me).map(p=>`<button onclick="mv({t:'act',a:'${tgt}',target:'${p.pid}'})">${esc(p.name)}</button>`).join('')+`<button class="alt" onclick="tgt=null;draw()">Voltar</button>`;
-   else ctl=Object.keys(A).map(a=>{const need=a==='coup'?7:a==='assassinate'?3:0,dis=mp.coins<need||(mp.coins>=10&&a!=='coup'),t=a==='coup'||a==='assassinate'||a==='steal';
-    return `<button ${dis?'disabled':''} onclick="${t?`tgt='${a}';draw()`:`mv({t:'act',a:'${a}'})`}">${A[a]}</button>`}).join('')+(mp.coins>=10?'<p>Com 10 ou mais moedas, o Golpe é obrigatório.</p>':'');
+   else{const rl=st.rl,fo=rl.first;ctl=rl.acts.map(({a,cost})=>{const dis=mp.coins<cost||(mp.coins>=rl.force&&a!=='coup')||(fo&&a!=='income');
+    return `<button ${dis?'disabled':''} onclick="${TGT[a]?`tgt='${a}';draw()`:`mv({t:'act',a:'${a}'})`}">${lbl(a)}</button>`}).join('')+(mp.coins>=rl.force?`<p>Com ${rl.force} ou mais moedas, o Golpe é obrigatório.</p>`:'')+(fo?'<p>Primeira jogada: só é permitido pegar Renda.</p>':'')}
   }
  }else if(st.phase==='react'){
   const b=pd.block;
@@ -387,8 +505,9 @@ function gameView(){
  }else if(st.phase==='lose'){
   status=st.lose===st.me?'Toque em uma das suas cartas para perdê-la.':`${nm(st.lose)} está escolhendo uma carta para perder.`;
  }else if(st.phase==='exchange'){
-  if(st.xchg){status=`Escolha ${st.xchg.keep} carta(s) para manter.`;
-   ctl=`<div class="row" style="--cw:72px">`+st.xchg.pool.map((c,i)=>`<span class="pick" onclick="tog(${i})" style="${sel.includes(i)?'filter:drop-shadow(0 0 6px #d4a94f)':''}">${cardHtml(c,0)}</span>`).join('')+`</div><button ${sel.length!==st.xchg.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`;
+  if(st.xchg){const x=st.xchg;
+   status=x.j?`Bufão: escolha ${x.keep} carta(s) para manter.${sel.length===x.keep?' Agora toque na carta que vai para o alvo.':''}`:`Escolha ${x.keep} carta(s) para manter.`;
+   ctl=`<div class="row" style="--cw:72px">`+x.pool.map((c,i)=>{const ch=sel.includes(i),g=x.j&&sel.length===x.keep&&!ch;return `<span class="pick" onclick="${g?`mv({t:'xchg',k:sel,g:${i}})`:`tog(${i})`}" style="${ch?'filter:drop-shadow(0 0 6px #d4a94f)':''}">${cardHtml(c,0)}</span>`}).join('')+`</div>`+(x.j?'':`<button ${sel.length!==x.keep?'disabled':''} onclick="mv({t:'xchg',k:sel})">Confirmar troca</button>`);
   }else status=`${nm(st.turn)} está trocando cartas.`;
  }else if(st.phase==='over'){
   status=`<b>${nm(st.winner)} venceu!</b>`;
@@ -396,20 +515,21 @@ function gameView(){
  }
  const tw=n>=7?38:n>=5?46:54;
  return `<div class="row"><h2>Sala ${st.code}</h2></div>
- <div id="cap" aria-live="polite">${esc(st.log[st.log.length-1]||'')}</div>
+ ${capHtml()}
  <div class="table">
   ${T.length?`<div class="s-top">${T.map(p=>seat(p,'s-t',tw)).join('')}</div>`:''}
   ${L?`<div class="s-left">${seat(L,'s-l',36)}</div>`:''}
   <div class="center"><div class="deck" style="--cw:58px">${cardHtml(null,0)}<b>${st.deck}</b></div><small>Monte</small></div>
   ${Rr?`<div class="s-right">${seat(Rr,'s-r',36)}</div>`:''}
   <div class="s-me">${seat(mp,'s-me',84)}</div>
-  ${rv}
+  ${rv}${stageHtml()}
  </div>
  <div class="box">${status}<div>${ctl}</div></div>${emoRow()}
  ${mp.alive?'':'<p>Você foi eliminado. Continue acompanhando a partida.</p>'}
  <div class="box" id="log">${st.log.slice().reverse().map(esc).join('<br>')}</div>
  ${st.phase==='over'?'':'<button class="alt" onclick="leave()">Sair da sala</button>'}`}
 
-function draw(){$.className=(me&&!st&&scr==='home')?'wide':'';$.innerHTML=!me?authView():!st?(SCR[scr]||hubView)():st.phase==='lobby'?lobbyView():st.phase==='pick'?pickView():gameView()}
+function draw(){drawRaw();startRigs()}
+function drawRaw(){$.className=(me&&!st&&scr==='home')?'wide':'';$.innerHTML=!me?authView():!st?(SCR[scr]||hubView)():st.phase==='lobby'?lobbyView():st.phase==='pick'?pickView():gameView()}
 draw();
 </script></body></html>
